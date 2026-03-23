@@ -1,0 +1,372 @@
+==============================================================================
+                    GRAVEYARD HUNTER - SETUP GUIDE
+                  Stealth / Survival / Maze Escape
+==============================================================================
+
+TONG QUAN
+---------
+Game: Graveyard Hunter
+The loai: Stealth / Survival / Maze Escape
+Goc nhin: Top-down 3D
+Phong cach: Low-poly, tong mau toi, anh sang noi bat
+
+YEAU CAU
+--------
+- Unity 2021.3+ (LTS khuyen nghi)
+- DOTween (da co san trong project)
+- Odin Inspector (da co san trong project)
+- TextMeshPro (Unity built-in)
+- NavMesh Components (Unity AI Navigation package)
+
+==============================================================================
+                        BUOC 1: IMPORT SCRIPTS
+==============================================================================
+
+Tat ca scripts da duoc tao tai: Assets/_Game/Scripts/
+Folder structure:
+
+Assets/_Game/
+├── Art/Materials/          <- Tao boi Material Factory
+├── Prefabs/               <- Tao boi Prefab Creator
+│   ├── Characters/
+│   ├── Environment/
+│   ├── Traps/
+│   ├── Boosters/
+│   ├── FX/
+│   └── UI/
+├── Scenes/
+├── ScriptableObjects/
+│   ├── Configs/           <- GameConfig.asset
+│   ├── Levels/            <- Level_01 -> Level_10
+│   └── Skins/
+└── Scripts/
+    ├── Core/              <- GameManager, EventBus, ServiceLocator, ObjectPool
+    ├── GameState/         <- GameStateManager + 7 states
+    ├── Level/             <- LevelManager, MazeGenerator, ExitGate, TreasurePickup
+    ├── Player/            <- PlayerController, PlayerHealth, PlayerInventory, PlayerLightSystem
+    ├── Enemy/             <- LightGhost, GhostLightCone, GhostEyes
+    ├── Input/             <- InputManager, VirtualJoystick
+    ├── UI/                <- UIPanel, UIManager, 7 panels
+    ├── Data/              <- GameConfig, PlayerProgressData, SkinData
+    ├── Audio/             <- AudioManager
+    ├── CameraSystem/      <- CameraController
+    ├── FX/                <- FXManager, FXSpawnPoint
+    ├── Animation/         <- DOTweenAnimator (utility)
+    ├── Command/           <- ICommand, CommandManager
+    ├── Trap/              <- TrapBase + 3 trap types
+    ├── Booster/           <- BoosterBase + 4 booster types
+    ├── Shop/              <- ShopManager
+    └── Editor/            <- 5 editor tools
+
+TONG CONG: 63 scripts
+
+==============================================================================
+                    BUOC 2: SETUP SCENE (1-CLICK)
+==============================================================================
+
+1. Mo Unity, doi scripts compile xong (khong co loi)
+
+2. Menu: GraveyardHunter > Scene Setup Wizard
+   - Click "Setup Scene"
+   - Tool se tu dong tao:
+     * Managers GameObject voi tat ca manager components
+     * Main Camera voi CameraController (top-down view)
+     * Directional Light (toi, phu hop graveyard theme)
+     * UI Canvas voi CanvasScaler 1080x1920
+     * 7 UI Panels (MainMenu, GameplayUI, Win, Fail, Pause, Settings, Shop)
+     * EventSystem
+     * GameConfig ScriptableObject
+
+3. Kiem tra Console - tat ca phai khong co loi
+
+==============================================================================
+                   BUOC 3: TAO MATERIALS (1-CLICK)
+==============================================================================
+
+1. Menu: GraveyardHunter > Material Factory
+   - Click "Create All Materials"
+   - Tao 19 materials tai Assets/_Game/Art/Materials/
+   - Bao gom: Floor_Dark, Wall_Stone, Player_Body, Ghost_Body,
+     Ghost_Eyes, Treasure_Gold, Trap materials, Booster materials, etc.
+
+==============================================================================
+                   BUOC 4: TAO PREFABS (1-CLICK)
+==============================================================================
+
+1. Menu: GraveyardHunter > Prefab Creator
+   - Click "Create All Prefabs"
+   - Tao 13 prefabs tai Assets/_Game/Prefabs/
+
+   Prefabs duoc tao:
+   - Player (Characters/) - PlayerController + Health + Inventory + Light + CharacterController
+   - Ghost (Characters/) - LightGhost + NavMeshAgent + LightCone + Eyes
+   - Treasure (Environment/) - TreasurePickup + glow light + animation
+   - ExitGate (Environment/) - ExitGate + gate light
+   - Wall (Environment/) - BoxCollider + Wall_Stone material
+   - Floor (Environment/) - Floor mesh
+   - SpikeTrap (Traps/) - SpikeTrap component
+   - NoiseTrap (Traps/) - NoiseTrap component
+   - LightBurstTrap (Traps/) - LightBurstTrap + burst light
+   - SmokeBomb (Boosters/) - SmokeBombBooster
+   - SpeedBoots (Boosters/) - SpeedBootsBooster
+   - ShadowCloak (Boosters/) - ShadowCloakBooster
+   - GhostVision (Boosters/) - GhostVisionBooster
+
+2. SAU KHI TAO PREFABS:
+   - Mo GameConfig (Assets/_Game/ScriptableObjects/Configs/GameConfig.asset)
+   - Kiem tra tat ca Prefab references da duoc assign
+   - Neu chua: keo prefabs tuong ung vao cac slot
+
+==============================================================================
+                   BUOC 5: TAO LEVELS (1-CLICK)
+==============================================================================
+
+1. Menu: GraveyardHunter > Level Batch Creator
+   - Click "Create All 10 Levels"
+   - Tao 10 LevelData assets tai Assets/_Game/ScriptableObjects/Levels/
+
+   Level 1-5 (Map 12x12):
+   - Level 1: "Tutorial" - 1 ghost, 2/3 treasures, no traps
+   - Level 2: "Watch Your Step" - 1 ghost, 2/3 treasures, 1 spike
+   - Level 3: "Quiet Steps" - 1 ghost, 3/4 treasures, 1 noise trap
+   - Level 4: "Double Trouble" - 2 ghosts, 3/4 treasures, 2 traps, 1 booster
+   - Level 5: "Smoke Screen" - 2 ghosts, 3/5 treasures, 2 traps, 1 smoke bomb
+
+   Level 6-10 (Map 16x16 -> 20x20):
+   - Level 6: "Bigger Grounds" - 3 ghosts, 4/5 treasures, 3 traps, 2 boosters
+   - Level 7: "All Traps" - 3 ghosts, 4/6 treasures, 3 traps (tat ca loai)
+   - Level 8: "Treasure Hunt" - 3 ghosts, 5/7 treasures, 4 traps
+   - Level 9: "Ghost Army" - 4 ghosts, 5/7 treasures, 5 traps
+   - Level 10: "Grand Finale" - 5 ghosts, 6/8 treasures, 6 traps (20x20)
+
+2. SAU KHI TAO LEVELS:
+   - Mo LevelManager trong Inspector
+   - Keo tat ca Level_01 -> Level_10 vao list _levels (theo thu tu)
+
+==============================================================================
+              BUOC 6: ASSIGN REFERENCES (QUAN TRONG)
+==============================================================================
+
+Kiem tra va assign cac references sau:
+
+1. GameManager:
+   - Khong can assign gi (dung ServiceLocator)
+
+2. LevelManager:
+   - _gameConfig -> GameConfig.asset
+   - _levels -> List chua Level_01 den Level_10
+
+3. UIManager:
+   - _panels -> Keo tat ca UIPanel components (MainMenu, Win, Fail, Pause, Settings, Shop)
+   - _gameplayUI -> GameplayUI component
+
+4. InputManager:
+   - _joystick -> VirtualJoystick component tren Canvas
+
+5. AudioManager:
+   - _musicSource -> AudioSource component
+   - _sfxLibrary -> Them AudioClips (neu co)
+   - _musicLibrary -> Them AudioClips (neu co)
+
+6. CameraController:
+   - Khong can assign (se duoc set luc runtime boi LevelManager)
+
+7. Moi UIPanel:
+   - Buttons, Texts, Images -> Da duoc assign boi Scene Setup Wizard
+   - Kiem tra lai neu can
+
+==============================================================================
+                   BUOC 7: SETUP NAVMESH
+==============================================================================
+
+Quan trong cho Enemy AI (Ghost dung NavMeshAgent):
+
+1. Mo Window > AI > Navigation
+2. Chon tat ca Wall prefabs va Floor:
+   - Wall: danh dau Navigation Static, Not Walkable
+   - Floor: danh dau Navigation Static, Walkable
+3. Tab Bake:
+   - Agent Radius: 0.5
+   - Agent Height: 2
+   - Step Height: 0.4
+   - Click "Bake"
+4. NavMesh phai duoc bake TRUOC khi play
+
+LUU Y: Moi lan LoadLevel se tao maze moi, can bake NavMesh dynamically.
+- Su dung NavMeshSurface component (Unity AI Navigation package)
+- Them NavMeshSurface vao Floor parent object
+- Goi NavMeshSurface.BuildNavMesh() sau khi tao maze
+
+==============================================================================
+                   BUOC 8: SETUP TAGS & LAYERS
+==============================================================================
+
+Tags can thiet (Edit > Project Settings > Tags and Layers):
+- Player
+- Enemy
+- Treasure
+- ExitGate
+- Trap
+- Booster
+- Wall
+
+Layers can thiet:
+- Player (Layer 8)
+- Enemy (Layer 9)
+- Wall (Layer 10)
+- Treasure (Layer 11)
+
+Physics:
+- Enemy ray cast den Player layer
+- Ghost LightCone check Player layer va Wall layer
+
+==============================================================================
+                   BUOC 9: PROJECT VALIDATOR
+==============================================================================
+
+1. Menu: GraveyardHunter > Project Validator
+   - Click "Run Validation"
+   - Kiem tra tat ca:
+     * GameConfig references
+     * Level data assets
+     * Prefab existence
+     * Material existence
+     * Scene managers
+     * UI assignments
+   - Fix tat ca Error (do) va Warning (vang)
+
+==============================================================================
+                   BUOC 10: TEST GAME
+==============================================================================
+
+1. Play mode
+2. Man hinh MainMenu hien len
+3. Nhan Play -> Load Level 1
+4. Test:
+   - Joystick di chuyen player
+   - Camera follow player
+   - Ghost patrol va chase khi thay player
+   - Thu thap treasure
+   - Khi du treasure -> gate mo
+   - Chay ve gate -> Win
+   - Bi ghost chieu sang -> mat HP
+   - HP het -> Fail
+   - Pause/Resume hoat dong
+   - Next/Retry/Home hoat dong
+
+==============================================================================
+                    GAME FLOW REFERENCE
+==============================================================================
+
+[MainMenu] --Play--> [Loading] --> [Playing]
+                                      |
+                                  Di chuyen, ne ghost
+                                  Thu thap treasure
+                                      |
+                                  Du treasure?
+                                      |
+                                  [EscapePhase]
+                                  Gate mo, ghost nhanh hon
+                                      |
+                                  Chay ve gate
+                                      |
+                                  [Win] --Next--> Level moi
+                                        --Retry--> Choi lai
+                                        --Home--> MainMenu
+
+[Playing] --HP=0--> [Fail] --Retry--> Choi lai
+                           --Home--> MainMenu
+
+[Playing] --Pause--> [Paused] --Resume--> [Playing]
+                              --Home--> MainMenu
+
+==============================================================================
+                    SCORING SYSTEM
+==============================================================================
+
++100 diem moi man hoan thanh
++10 diem moi kho bau
++1 diem moi giay song sot
++50 diem bonus neu khong mat mau
+
+Stars (dua tren HP khi hoan thanh):
+- 3 sao: HP = 5 (full)
+- 2 sao: HP >= 3
+- 1 sao: HP >= 1
+
+==============================================================================
+                    ARCHITECTURE NOTES
+==============================================================================
+
+PATTERNS SU DUNG:
+- Service Locator: Managers dang ky/truy cap qua ServiceLocator
+- EventBus (static pub/sub): Giao tiep giua cac he thong
+- State Machine: GameStateManager quan ly GameState
+- Factory Pattern: Prefabs qua PrefabCreator
+- Object Pool: FX, AudioSources
+- ScriptableObject: GameConfig, LevelData, SkinData
+
+QUY TAC VANG:
+- GameManager la orchestrator DUY NHAT subscribe user-action events
+- Workers (LevelManager, etc.) KHONG subscribe events, chi expose public methods
+- GameplayUI dung CanvasGroup (KHONG SetActive)
+- WinPanel subscribe trong Awake() va cache data
+- Buttons trong Win/Fail KHONG goi Hide()
+- ForceHideAllPanels() truoc moi transition lon
+- DestroyImmediate() khi clear level
+- DOTween.KillAll(false) TRUOC destroy objects
+- .SetUpdate(true) cho TAT CA UI animations
+
+NAMESPACES:
+- GraveyardHunter.Core
+- GraveyardHunter.GameState
+- GraveyardHunter.Level
+- GraveyardHunter.Player
+- GraveyardHunter.Enemy
+- GraveyardHunter.Input
+- GraveyardHunter.UI
+- GraveyardHunter.Data
+- GraveyardHunter.Audio
+- GraveyardHunter.CameraSystem
+- GraveyardHunter.FX
+- GraveyardHunter.Animation
+- GraveyardHunter.Command
+- GraveyardHunter.Trap
+- GraveyardHunter.Booster
+- GraveyardHunter.Shop
+- GraveyardHunter.Editor
+
+==============================================================================
+                    TROUBLESHOOTING
+==============================================================================
+
+LOI THUONG GAP:
+
+1. "Service not found" error:
+   - Dam bao tat ca Managers da co trong Scene
+   - Kiem tra thu tu Awake: ServiceLocator.Register phai chay truoc Get
+   - Dung Script Execution Order: ObjectPool (-100), Managers (-50), GameManager (0)
+
+2. Ghost khong di chuyen:
+   - Kiem tra NavMesh da bake chua
+   - Them NavMeshSurface component va goi BuildNavMesh()
+   - Kiem tra NavMeshAgent component tren Ghost prefab
+
+3. UI khong hien thi:
+   - Kiem tra Canvas co CanvasScaler khong
+   - Kiem tra EventSystem ton tai
+   - Kiem tra panel _panelName dung ten
+
+4. Player khong tuong tac voi Treasure/ExitGate:
+   - Kiem tra Tags: "Player", "Treasure", "ExitGate"
+   - Kiem tra Collider la Trigger
+   - Kiem tra Rigidbody (it nhat 1 object can co)
+
+5. DOTween errors khi chuyen level:
+   - Dam bao goi DOTween.KillAll(false) trong ClearLevel()
+   - Dung DestroyImmediate thay vi Destroy
+
+6. UI Panel animations khong chay khi Pause:
+   - Kiem tra .SetUpdate(true) tren tat ca UI tweens
+
+==============================================================================

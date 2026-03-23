@@ -1,0 +1,151 @@
+using DG.Tweening;
+using GraveyardHunter.Core;
+using GraveyardHunter.Data;
+using GraveyardHunter.Input;
+using Sirenix.OdinInspector;
+using UnityEngine;
+
+namespace GraveyardHunter.Player
+{
+    [RequireComponent(typeof(CharacterController))]
+    public class PlayerController : MonoBehaviour
+    {
+        [SerializeField] private float _moveSpeed;
+        [SerializeField] private Transform _visualRoot;
+
+        private CharacterController _characterController;
+        private GameConfig _config;
+
+        private bool _isSlowed;
+        private bool _hasSpeedBoost;
+        private float _speedBoostMultiplier = 1f;
+        private float _slowRecoveryTimer;
+        private bool _wasInLight;
+
+        private bool _movementEnabled;
+
+        public bool IsInvisible { get; set; }
+
+        private void Awake()
+        {
+            _characterController = GetComponent<CharacterController>();
+
+            EventBus.Subscribe<PlayerInLightEvent>(OnPlayerInLight);
+            EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<PlayerInLightEvent>(OnPlayerInLight);
+            EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
+        }
+
+        public void Initialize(GameConfig config)
+        {
+            _config = config;
+            _moveSpeed = config.PlayerMoveSpeed;
+            _isSlowed = false;
+            _hasSpeedBoost = false;
+            _speedBoostMultiplier = 1f;
+            _slowRecoveryTimer = 0f;
+        }
+
+        private void Update()
+        {
+            if (!_movementEnabled)
+                return;
+
+            HandleMovement();
+            HandleSlowRecovery();
+        }
+
+        private void HandleMovement()
+        {
+            var inputManager = ServiceLocator.Get<InputManager>();
+            Vector2 moveInput = inputManager.GetMoveInput();
+
+            if (moveInput.sqrMagnitude < 0.01f)
+                return;
+
+            Vector3 moveDirection = new Vector3(moveInput.x, 0f, moveInput.y).normalized;
+
+            float currentSpeed = _moveSpeed;
+
+            if (_isSlowed)
+            {
+                currentSpeed *= (1f - _config.LightSlowPercent);
+            }
+
+            if (_hasSpeedBoost)
+            {
+                currentSpeed *= _speedBoostMultiplier;
+            }
+
+            Vector3 velocity = moveDirection * currentSpeed * Time.deltaTime;
+            _characterController.Move(velocity);
+
+            RotateTowardsDirection(moveDirection);
+        }
+
+        private void RotateTowardsDirection(Vector3 direction)
+        {
+            if (direction.sqrMagnitude < 0.01f)
+                return;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            Transform rotateTarget = _visualRoot != null ? _visualRoot : transform;
+            rotateTarget.rotation = Quaternion.Slerp(rotateTarget.rotation, targetRotation, 10f * Time.deltaTime);
+        }
+
+        private void HandleSlowRecovery()
+        {
+            if (!_isSlowed || _wasInLight)
+                return;
+
+            _slowRecoveryTimer += Time.deltaTime;
+
+            if (_slowRecoveryTimer >= _config.SlowRecoveryDelay)
+            {
+                _isSlowed = false;
+                _slowRecoveryTimer = 0f;
+            }
+        }
+
+        public void ApplySpeedBoost(float multiplier, float duration)
+        {
+            _hasSpeedBoost = true;
+            _speedBoostMultiplier = multiplier;
+
+            DOVirtual.DelayedCall(duration, RemoveSpeedBoost).SetTarget(this);
+        }
+
+        public void RemoveSpeedBoost()
+        {
+            _hasSpeedBoost = false;
+            _speedBoostMultiplier = 1f;
+        }
+
+        private void OnPlayerInLight(PlayerInLightEvent evt)
+        {
+            bool isInLight = evt.InLight;
+
+            if (isInLight)
+            {
+                _isSlowed = true;
+                _wasInLight = true;
+                _slowRecoveryTimer = 0f;
+            }
+            else
+            {
+                _wasInLight = false;
+                _slowRecoveryTimer = 0f;
+            }
+        }
+
+        private void OnGameStateChanged(GameStateChangedEvent evt)
+        {
+            _movementEnabled = evt.NewState == Core.GameState.Playing || evt.NewState == Core.GameState.EscapePhase;
+        }
+    }
+}

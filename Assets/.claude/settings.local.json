@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/**)",
+      "Bash(pandoc \"D:\\\\Downloads\\\\Graveyard Hunter.docx\" -o /tmp/graveyard_hunter.md --track-changes=all)",
+      "Read(//tmp/**)",
+      "Bash(pandoc \"D:/Downloads/Graveyard Hunter.docx\" -t markdown -o \"D:/Downloads/graveyard_hunter.md\")",
+      "Read(//d/Downloads/**)",
+      "Bash(python \"C:/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/97dba126-d6c3-44b8-8ca7-46617a767575/c4292d34-f69a-4047-8116-ddd6135b94af/skills/docx/scripts/office/unpack.py\" \"D:/Downloads/Graveyard Hunter.docx\" \"D:/Downloads/graveyard_hunter_unpacked/\")",
+      "Bash(find D:/GithubUnity/GraveyardHunter/Assets/_Game/Scripts/Editor -name *.cs)"
+    ]
+  }
+}

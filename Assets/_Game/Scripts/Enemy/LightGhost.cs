@@ -1,0 +1,238 @@
+using UnityEngine;
+using UnityEngine.AI;
+using DG.Tweening;
+using Sirenix.OdinInspector;
+using GraveyardHunter.Core;
+using GraveyardHunter.Data;
+
+namespace GraveyardHunter.Enemy
+{
+    public class LightGhost : MonoBehaviour
+    {
+        [SerializeField] private int _ghostId;
+        [ShowInInspector, ReadOnly] private GhostState _currentState = GhostState.Scan;
+
+        private NavMeshAgent _agent;
+
+        [SerializeField] private Transform _visualRoot;
+        [SerializeField] private GhostLightCone _lightCone;
+
+        private GameConfig _config;
+        private Transform _playerTransform;
+
+        private float _scanSpeed;
+        private float _chaseSpeed;
+        private bool _isEscapePhase;
+        private Vector3 _lastKnownPlayerPos;
+        private float _wallCheckTimer;
+        private bool _isActive;
+
+        private bool _wasPlayerDetected;
+
+        private void Awake()
+        {
+            _agent = GetComponent<NavMeshAgent>();
+
+            EventBus.Subscribe<NoiseTriggeredEvent>(OnNoiseTriggered);
+            EventBus.Subscribe<EscapePhaseStartedEvent>(OnEscapePhaseStarted);
+            EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<NoiseTriggeredEvent>(OnNoiseTriggered);
+            EventBus.Unsubscribe<EscapePhaseStartedEvent>(OnEscapePhaseStarted);
+            EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
+        }
+
+        public void Initialize(GameConfig config, Transform player, int id)
+        {
+            _config = config;
+            _playerTransform = player;
+            _ghostId = id;
+
+            _scanSpeed = config.GhostScanSpeed;
+            _chaseSpeed = config.GhostChaseSpeed;
+
+            _agent.speed = _scanSpeed;
+
+            _lightCone.SetPlayer(player);
+            _lightCone.Initialize(config.GhostLightConeAngle, config.GhostLightRange);
+
+            _isActive = true;
+            SetState(GhostState.Scan);
+        }
+
+        private void Update()
+        {
+            if (!_isActive) return;
+
+            switch (_currentState)
+            {
+                case GhostState.Scan:
+                    ScanBehavior();
+                    break;
+                case GhostState.Chase:
+                    ChaseBehavior();
+                    break;
+            }
+
+            UpdatePlayerDetection();
+        }
+
+        private void UpdatePlayerDetection()
+        {
+            bool detected = _lightCone.PlayerDetected;
+
+            if (detected && !_wasPlayerDetected)
+            {
+                EventBus.Publish(new PlayerInLightEvent { InLight = true });
+                _lastKnownPlayerPos = _playerTransform.position;
+                SetState(GhostState.Chase);
+            }
+            else if (!detected && _wasPlayerDetected)
+            {
+                EventBus.Publish(new PlayerInLightEvent { InLight = false });
+            }
+
+            _wasPlayerDetected = detected;
+        }
+
+        public void SetState(GhostState newState)
+        {
+            if (_currentState == newState) return;
+
+            GhostState previousState = _currentState;
+            _currentState = newState;
+
+            switch (newState)
+            {
+                case GhostState.Scan:
+                    _agent.speed = _isEscapePhase ? _scanSpeed * 1.2f : _scanSpeed;
+                    PickRandomDestination();
+                    break;
+
+                case GhostState.Chase:
+                    _agent.speed = _isEscapePhase ? _chaseSpeed * 1.2f : _chaseSpeed;
+                    break;
+            }
+
+            EventBus.Publish(new GhostStateChangedEvent { GhostId = _ghostId, NewState = newState });
+        }
+
+        private void ScanBehavior()
+        {
+            if (!_agent.pathPending && _agent.remainingDistance < 0.5f)
+            {
+                PickRandomDestination();
+            }
+
+            if (_lightCone.IsPlayerInCone())
+            {
+                _lastKnownPlayerPos = _playerTransform.position;
+                SetState(GhostState.Chase);
+            }
+        }
+
+        private void ChaseBehavior()
+        {
+            if (_lightCone.IsPlayerInCone())
+            {
+                _lastKnownPlayerPos = _playerTransform.position;
+                _agent.SetDestination(_playerTransform.position);
+                _wallCheckTimer = 0f;
+            }
+            else
+            {
+                _agent.SetDestination(_lastKnownPlayerPos);
+                _wallCheckTimer += Time.deltaTime;
+
+                if (CheckWallAhead() || _wallCheckTimer > 3f)
+                {
+                    OnReachWallDuringChase();
+                }
+
+                if (!_agent.pathPending && _agent.remainingDistance < 0.5f)
+                {
+                    OnReachWallDuringChase();
+                }
+            }
+        }
+
+        private void OnReachWallDuringChase()
+        {
+            _wallCheckTimer = 0f;
+            SetState(GhostState.Scan);
+        }
+
+        private bool CheckWallAhead()
+        {
+            if (_agent.velocity.sqrMagnitude < 0.01f) return false;
+
+            Vector3 direction = _agent.velocity.normalized;
+            float checkDistance = 1.0f;
+
+            return Physics.Raycast(transform.position, direction, checkDistance, _lightCone.WallLayer);
+        }
+
+        private void PickRandomDestination()
+        {
+            Vector3 randomDirection = Random.insideUnitSphere * 15f;
+            randomDirection += transform.position;
+
+            if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, 15f, NavMesh.AllAreas))
+            {
+                _agent.SetDestination(hit.position);
+            }
+        }
+
+        private void OnNoiseTriggered(NoiseTriggeredEvent evt)
+        {
+            if (!_isActive) return;
+
+            Vector3 directionToNoise = (evt.Position - transform.position).normalized;
+            directionToNoise.y = 0f;
+
+            if (directionToNoise.sqrMagnitude > 0.01f)
+            {
+                transform.DORotateQuaternion(Quaternion.LookRotation(directionToNoise), 0.5f);
+            }
+
+            if (_currentState == GhostState.Scan)
+            {
+                _agent.SetDestination(evt.Position);
+            }
+        }
+
+        private void OnEscapePhaseStarted(EscapePhaseStartedEvent evt)
+        {
+            _isEscapePhase = true;
+
+            float speedMultiplier = 1.2f;
+            _agent.speed *= speedMultiplier;
+        }
+
+        public void SetVisionThroughWalls(bool enabled)
+        {
+            if (_lightCone != null)
+                _lightCone.IgnoreWalls = enabled;
+        }
+
+        private void OnGameStateChanged(GameStateChangedEvent evt)
+        {
+            switch (evt.NewState)
+            {
+                case Core.GameState.Playing:
+                case Core.GameState.EscapePhase:
+                    _isActive = true;
+                    _agent.isStopped = false;
+                    break;
+
+                default:
+                    _isActive = false;
+                    _agent.isStopped = true;
+                    break;
+            }
+        }
+    }
+}

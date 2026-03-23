@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4460f032d06d8664597834da0123c852, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  PlayerMaxHP: 5
+  PlayerMoveSpeed: 5
+  PlayerSpeedAdvantage: 1.15
+  PlayerLightRadius: 3
+  PlayerFlashlightRange: 8
+  PlayerFlashlightAngle: 30
+  LightDamagePerSecond: 1
+  LightSlowPercent: 0.2
+  SlowRecoveryDelay: 2
+  GhostScanSpeed: 2.5
+  GhostChaseSpeed: 4
+  GhostLightConeAngle: 80
+  GhostLightRange: 10
+  GhostEscapeSpeedBoost: 1.2
+  EscapeMusicSpeedMultiplier: 1.3
+  ScorePerLevel: 100
+  ScorePerTreasure: 10
+  ScorePerSecond: 1
+  NoDamageBonus: 50
+  SmokeBombDuration: 3
+  SpeedBootsDuration: 5
+  SpeedBootsMultiplier: 1.3
+  ShadowCloakDuration: 4
+  GhostVisionDuration: 5
+  SpikeDamage: 1
+  LightBurstDuration: 2
+  PlayerPrefab: {fileID: 5440445645884156170, guid: 63070dfc5e03c2c4281d5e9ca3d12409, type: 3}
+  GhostPrefab: {fileID: 6016688276179071124, guid: 26802c1836db7d8458caabffe3376046, type: 3}
+  TreasurePrefab: {fileID: 5641673387451325299, guid: 248cced0ee761ad439e1a866e336df32, type: 3}
+  ExitGatePrefab: {fileID: 8713519837242580883, guid: e8e945a0c4e5e2a46af451f1b6dd1cfb, type: 3}
+  WallPrefab: {fileID: 6352528236006872629, guid: 9b28b85a937c33e44bb35636981aac46, type: 3}
+  FloorPrefab: {fileID: 7035497450723493866, guid: 0f8a2d50c3092f340b0bb567d2c0c218, type: 3}
+  SpikeTrapPrefab: {fileID: 1893916619730477487, guid: 2ef2fdf44df922445a0e328c98fb83f9, type: 3}
+  NoiseTrapPrefab: {fileID: 7992029527607000119, guid: 6154cd14a9302de4ebbf9b17d0311623, type: 3}
+  LightBurstTrapPrefab: {fileID: 3946119305270746313, guid: cdf4240591354664a9b0c6f01cb735a5, type: 3}
+  SmokeBombPrefab: {fileID: 304636928455326311, guid: 70f5fcec6c1f5bf43991603cbb403166, type: 3}
+  SpeedBootsPrefab: {fileID: 8460767422894909911, guid: 3c4ff4da39100194891041c45b070e51, type: 3}
+  ShadowCloakPrefab: {fileID: 5933734488732299413, guid: 93260b3d4ff859341b8d0b9e64dfc7d5, type: 3}
+  GhostVisionPrefab: {fileID: 1800889479334104305, guid: 8260b6dfb83413a40b37663eafb88cdc, type: 3}
+  AvailableSkins: []
