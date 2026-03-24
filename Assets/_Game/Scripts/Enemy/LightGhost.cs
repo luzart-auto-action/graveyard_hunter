@@ -13,6 +13,10 @@ namespace GraveyardHunter.Enemy
         [ShowInInspector, ReadOnly] private GhostState _currentState = GhostState.Scan;
 
         private NavMeshAgent _agent;
+        private Animator _animator;
+
+        private static readonly int AnimSpeed = Animator.StringToHash("Speed");
+        private static readonly int AnimIsChasing = Animator.StringToHash("IsChasing");
 
         [SerializeField] private Transform _visualRoot;
         [SerializeField] private GhostLightCone _lightCone;
@@ -28,10 +32,12 @@ namespace GraveyardHunter.Enemy
         private bool _isActive;
 
         private bool _wasPlayerDetected;
+        private bool _needsFirstDestination;
 
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
+            _animator = GetComponentInChildren<Animator>();
 
             EventBus.Subscribe<NoiseTriggeredEvent>(OnNoiseTriggered);
             EventBus.Subscribe<EscapePhaseStartedEvent>(OnEscapePhaseStarted);
@@ -60,12 +66,35 @@ namespace GraveyardHunter.Enemy
             _lightCone.Initialize(config.GhostLightConeAngle, config.GhostLightRange);
 
             _isActive = true;
-            SetState(GhostState.Scan);
+
+            // Force initial state setup (default is already Scan, so SetState would skip it)
+            _currentState = GhostState.Scan;
+            _agent.speed = _scanSpeed;
+
+            // Try to set first destination; if agent not on NavMesh yet, retry in Update
+            if (_agent.isOnNavMesh)
+            {
+                PickRandomDestination();
+            }
+            else
+            {
+                _needsFirstDestination = true;
+            }
+
+            EventBus.Publish(new GhostStateChangedEvent { GhostId = _ghostId, NewState = GhostState.Scan });
         }
 
         private void Update()
         {
             if (!_isActive) return;
+            if (!_agent.isOnNavMesh) return;
+
+            // Retry first destination if it wasn't set during Initialize
+            if (_needsFirstDestination)
+            {
+                _needsFirstDestination = false;
+                PickRandomDestination();
+            }
 
             switch (_currentState)
             {
@@ -78,6 +107,13 @@ namespace GraveyardHunter.Enemy
             }
 
             UpdatePlayerDetection();
+
+            // Update animation parameters
+            if (_animator != null)
+            {
+                _animator.SetFloat(AnimSpeed, _agent.velocity.magnitude);
+                _animator.SetBool(AnimIsChasing, _currentState == GhostState.Chase);
+            }
         }
 
         private void UpdatePlayerDetection()
@@ -225,12 +261,12 @@ namespace GraveyardHunter.Enemy
                 case Core.GameState.Playing:
                 case Core.GameState.EscapePhase:
                     _isActive = true;
-                    _agent.isStopped = false;
+                    if (_agent.isOnNavMesh) _agent.isStopped = false;
                     break;
 
                 default:
                     _isActive = false;
-                    _agent.isStopped = true;
+                    if (_agent.isOnNavMesh) _agent.isStopped = true;
                     break;
             }
         }

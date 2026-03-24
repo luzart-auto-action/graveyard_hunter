@@ -6,11 +6,9 @@ namespace GraveyardHunter.Input
 {
     public class InputManager : MonoBehaviour
     {
-        [SerializeField] private VirtualJoystick _joystick;
+        [SerializeField] private Joystick _joystick;
 
         [ShowInInspector, ReadOnly] private Vector2 _moveInput;
-
-        private bool _useKeyboard;
 
         private void Awake()
         {
@@ -25,7 +23,8 @@ namespace GraveyardHunter.Input
         private void Update()
         {
 #if UNITY_EDITOR
-            if (_joystick == null || _joystick.InputDirection == Vector2.zero)
+            // Keyboard fallback in Editor (WASD / Arrow keys)
+            if (_joystick == null || _joystick.Direction == Vector2.zero)
             {
                 float horizontal = 0f;
                 float vertical = 0f;
@@ -40,9 +39,8 @@ namespace GraveyardHunter.Input
                     horizontal -= 1f;
 
                 Vector2 keyboardInput = new Vector2(horizontal, vertical);
-                _useKeyboard = keyboardInput.sqrMagnitude > 0f;
 
-                if (_useKeyboard)
+                if (keyboardInput.sqrMagnitude > 0f)
                 {
                     _moveInput = keyboardInput.normalized;
                     return;
@@ -52,7 +50,7 @@ namespace GraveyardHunter.Input
 
             if (_joystick != null)
             {
-                _moveInput = _joystick.InputDirection;
+                _moveInput = _joystick.Direction;
             }
             else
             {
@@ -65,7 +63,7 @@ namespace GraveyardHunter.Input
             return _moveInput.normalized;
         }
 
-        public void SetJoystick(VirtualJoystick joystick)
+        public void SetJoystick(Joystick joystick)
         {
             _joystick = joystick;
         }

@@ -25,6 +25,7 @@ namespace GraveyardHunter.Level
         private LevelData _currentLevelData;
         private Transform _levelRoot;
         private List<GameObject> _spawnedObjects = new();
+        private List<Transform> _wallTransforms = new();
         private PlayerController _playerInstance;
         private List<LightGhost> _ghostInstances = new();
         private float _levelStartTime;
@@ -99,6 +100,7 @@ namespace GraveyardHunter.Level
             }
 
             _spawnedObjects.Clear();
+            _wallTransforms.Clear();
             _ghostInstances.Clear();
             _playerInstance = null;
 
@@ -120,6 +122,17 @@ namespace GraveyardHunter.Level
             // Collect all mesh sources from level geometry
             var sources = new List<NavMeshBuildSource>();
             var markups = new List<NavMeshBuildMarkup>();
+
+            // Mark all walls as Not Walkable (area 1) so ghosts can't path through them
+            foreach (var wallTransform in _wallTransforms)
+            {
+                markups.Add(new NavMeshBuildMarkup
+                {
+                    root = wallTransform,
+                    overrideArea = true,
+                    area = 1 // Not Walkable
+                });
+            }
 
             NavMeshBuilder.CollectSources(
                 _levelRoot, // root transform
@@ -187,6 +200,7 @@ namespace GraveyardHunter.Level
                     {
                         var wall = Instantiate(_gameConfig.WallPrefab, worldPos, Quaternion.identity, _levelRoot);
                         _spawnedObjects.Add(wall);
+                        _wallTransforms.Add(wall.transform);
                     }
                     else if (grid[x, y] == CellType.ExitGate)
                     {
@@ -278,6 +292,19 @@ namespace GraveyardHunter.Level
 
         private void SpawnGhost(Vector3 position, int id)
         {
+            // Find nearest valid WALKABLE NavMesh position so the agent can be placed
+            // Use area mask 1 (bit 0 = Walkable area only), not AllAreas which includes Not Walkable
+            int walkableAreaMask = 1 << 0; // Area 0 = Walkable
+            if (NavMesh.SamplePosition(position, out NavMeshHit hit, 5f, walkableAreaMask))
+            {
+                position = hit.position;
+            }
+            else
+            {
+                Debug.LogWarning($"[LevelManager] No NavMesh near ghost spawn {position}, skipping ghost {id}");
+                return;
+            }
+
             var ghostObj = Instantiate(_gameConfig.GhostPrefab, position, Quaternion.identity, _levelRoot);
             _spawnedObjects.Add(ghostObj);
 

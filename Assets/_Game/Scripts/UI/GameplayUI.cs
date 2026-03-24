@@ -55,6 +55,10 @@ namespace GraveyardHunter.UI
 
         public override void Show()
         {
+            // Ensure GameObject is active (in case it started disabled in scene)
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+
             if (!_initialized) Init();
 
             DOTween.Kill(this);
@@ -77,6 +81,10 @@ namespace GraveyardHunter.UI
 
         public void ForceHide()
         {
+            // Ensure GO is active so CanvasGroup works, then hide via alpha
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+
             if (!_initialized) Init();
 
             DOTween.Kill(this);

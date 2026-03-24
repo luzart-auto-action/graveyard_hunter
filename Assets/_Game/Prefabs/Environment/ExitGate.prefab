@@ -232,6 +232,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8201084149558112724}
   - component: {fileID: 3327911909113895214}
+  - component: {fileID: 2829609037022778528}
   m_Layer: 0
   m_Name: ExitGate
   m_TagString: ExitGate
@@ -270,3 +271,21 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 2, y: 3, z: 0.5}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2829609037022778528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8713519837242580883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 307c536b1bcbc1a43be5cb143b866ae3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _visualRoot: {fileID: 4450177116279637501}
+  _gateLight: {fileID: 4719780856261037404}
+  _gateRenderer: {fileID: 8519330410356378249}
+  _closedColor: {r: 0.29, g: 0, b: 0, a: 1}
+  _openColor: {r: 0, g: 1, b: 0.27, a: 1}
+  _interactRadius: 1.5

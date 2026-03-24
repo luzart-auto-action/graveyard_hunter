@@ -270,6 +270,9 @@ namespace GraveyardHunter.Editor
             col.isTrigger = true;
             col.size = new Vector3(1f, 1f, 1f);
 
+            // TreasurePickup script for collection logic
+            var pickupComp = root.AddComponent<Level.TreasurePickup>();
+
             var visual = CreatePrimitive("VisualRoot", root.transform, PrimitiveType.Cube, "Treasure_Gold");
             visual.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
             visual.transform.localPosition = new Vector3(0f, 0.3f, 0f);
@@ -283,6 +286,12 @@ namespace GraveyardHunter.Editor
             glow.range = 2f;
             glow.intensity = 0.8f;
             glow.color = new Color(1f, 0.84f, 0f, 1f);
+
+            // Assign TreasurePickup references
+            var pickupSO = new SerializedObject(pickupComp);
+            AssignRef(pickupSO, "_visualRoot", visual.transform);
+            AssignRef(pickupSO, "_glowLight", glow);
+            pickupSO.ApplyModifiedPropertiesWithoutUndo();
 
             CreateFXPoint("FX_Center", root.transform, new Vector3(0f, 0.5f, 0f));
 
@@ -304,6 +313,9 @@ namespace GraveyardHunter.Editor
             col.isTrigger = true;
             col.size = new Vector3(2f, 3f, 0.5f);
 
+            // ExitGate script for interaction logic
+            var gateComp = root.AddComponent<Level.ExitGate>();
+
             var visual = CreatePrimitive("VisualRoot", root.transform, PrimitiveType.Cube, "ExitGate_Closed");
             visual.transform.localScale = new Vector3(2f, 3f, 0.3f);
             visual.transform.localPosition = new Vector3(0f, 1.5f, 0f);
@@ -318,6 +330,14 @@ namespace GraveyardHunter.Editor
             gateLight.intensity = 1.5f;
             gateLight.color = new Color(0f, 1f, 0.27f, 1f);
             gateLight.enabled = false;
+
+            // Assign ExitGate references
+            var gateSO = new SerializedObject(gateComp);
+            AssignRef(gateSO, "_visualRoot", visual.transform);
+            AssignRef(gateSO, "_gateLight", gateLight);
+            var renderer = visual.GetComponent<Renderer>();
+            if (renderer != null) AssignRef(gateSO, "_gateRenderer", renderer);
+            gateSO.ApplyModifiedPropertiesWithoutUndo();
 
             CreateFXPoint("FX_Center", root.transform, new Vector3(0f, 1.5f, 0f));
 
@@ -337,6 +357,9 @@ namespace GraveyardHunter.Editor
             var col = root.AddComponent<BoxCollider>();
             col.size = new Vector3(2f, 3f, 2f);
             col.center = new Vector3(0f, 1.5f, 0f);
+
+            // Walls are excluded from NavMesh via bake markups in LevelManager
+            // No NavMeshObstacle needed
 
             var visual = CreatePrimitive("VisualRoot", root.transform, PrimitiveType.Cube, "Wall_Stone");
             visual.transform.localScale = new Vector3(2f, 3f, 2f);

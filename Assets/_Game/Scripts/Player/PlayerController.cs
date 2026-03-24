@@ -14,7 +14,12 @@ namespace GraveyardHunter.Player
         [SerializeField] private Transform _visualRoot;
 
         private CharacterController _characterController;
+        private Animator _animator;
         private GameConfig _config;
+
+        private static readonly int AnimSpeed = Animator.StringToHash("Speed");
+        private static readonly int AnimWin = Animator.StringToHash("Win");
+        private static readonly int AnimDie = Animator.StringToHash("Die");
 
         private bool _isSlowed;
         private bool _hasSpeedBoost;
@@ -29,6 +34,7 @@ namespace GraveyardHunter.Player
         private void Awake()
         {
             _characterController = GetComponent<CharacterController>();
+            _animator = GetComponentInChildren<Animator>();
 
             EventBus.Subscribe<PlayerInLightEvent>(OnPlayerInLight);
             EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
@@ -63,6 +69,10 @@ namespace GraveyardHunter.Player
         {
             var inputManager = ServiceLocator.Get<InputManager>();
             Vector2 moveInput = inputManager.GetMoveInput();
+
+            // Update animation
+            if (_animator != null)
+                _animator.SetFloat(AnimSpeed, moveInput.sqrMagnitude > 0.01f ? 1f : 0f);
 
             if (moveInput.sqrMagnitude < 0.01f)
                 return;
@@ -146,6 +156,11 @@ namespace GraveyardHunter.Player
         private void OnGameStateChanged(GameStateChangedEvent evt)
         {
             _movementEnabled = evt.NewState == Core.GameState.Playing || evt.NewState == Core.GameState.EscapePhase;
+
+            if (evt.NewState == Core.GameState.Win && _animator != null)
+                _animator.SetTrigger(AnimWin);
+            else if (evt.NewState == Core.GameState.Fail && _animator != null)
+                _animator.SetTrigger(AnimDie);
         }
     }
 }

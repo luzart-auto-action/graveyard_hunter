@@ -302,6 +302,11 @@ namespace GraveyardHunter.Core
             _gameStateManager.ChangeState(GameState.Playing);
             _currentState = GameState.Playing;
 
+            // Explicitly show GameplayUI after state change
+            // (ForceHideAllPanels unsubscribes GameplayUI from events,
+            //  so it can't self-activate from the GameStateChangedEvent)
+            _uiManager.ShowGameplayUI();
+
             _audioManager.PlayMusic("GameplayBGM", true);
         }
 

@@ -55,6 +55,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3400260179503985861}
   - component: {fileID: 4315233618115938832}
+  - component: {fileID: 4127992985827121335}
   m_Layer: 0
   m_Name: Treasure
   m_TagString: Treasure
@@ -93,6 +94,24 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4127992985827121335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5641673387451325299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7085f1efb4b1954ba5b9588a9cbeda5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _treasureType: 0
+  _visualRoot: {fileID: 1401610347018715675}
+  _glowLight: {fileID: 551164407271275535}
+  _glowIntensity: 1.5
+  _glowRange: 4
+  _pickupRadius: 1.5
 --- !u!1 &7294448129092982342
 GameObject:
   m_ObjectHideFlags: 0
