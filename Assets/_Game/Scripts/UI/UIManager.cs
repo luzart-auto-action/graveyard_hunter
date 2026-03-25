@@ -74,6 +74,11 @@ namespace GraveyardHunter.UI
             return null;
         }
 
+        public GameplayUI GetGameplayUI()
+        {
+            return _gameplayUI;
+        }
+
         public void ShowGameplayUI()
         {
             if (_gameplayUI != null)

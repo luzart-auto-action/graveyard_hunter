@@ -102,6 +102,8 @@ namespace GraveyardHunter.UI
 
                 // Position: top-down, zigzag X
                 var rect = go.GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.5f, 1f);
+                rect.anchorMax = new Vector2(0.5f, 1f);
                 float yPos = -(120f + i * _nodeSpacing);
                 float xOffset = Mathf.Sin(i * 0.9f) * _zigzagAmplitude;
                 rect.anchoredPosition = new Vector2(xOffset, yPos);

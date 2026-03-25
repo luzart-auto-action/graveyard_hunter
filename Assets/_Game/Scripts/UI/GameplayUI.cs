@@ -270,11 +270,22 @@ namespace GraveyardHunter.UI
         {
             if (_boosterTimerUI != null) _boosterTimerUI.SetActive(true);
             if (_boosterNameText != null) _boosterNameText.text = evt.Type.ToString();
-            if (_boosterTimerFill != null) _boosterTimerFill.fillAmount = 1f;
+
+            if (_boosterTimerFill != null)
+            {
+                // Kill any previous fill tween then animate 1 → 0 over duration
+                _boosterTimerFill.DOKill();
+                _boosterTimerFill.fillAmount = 1f;
+                _boosterTimerFill.DOFillAmount(0f, evt.Duration)
+                    .SetEase(Ease.Linear);
+            }
         }
 
         private void OnBoosterExpired(BoosterExpiredEvent evt)
         {
+            if (_boosterTimerFill != null)
+                _boosterTimerFill.DOKill();
+
             if (_boosterTimerUI != null) _boosterTimerUI.SetActive(false);
         }
 

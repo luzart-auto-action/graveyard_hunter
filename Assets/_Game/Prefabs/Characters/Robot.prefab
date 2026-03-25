@@ -225,13 +225,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _spotLight: {fileID: 887602891482348006}
   _coneAngle: 80
-  _coneRange: 10
+  _coneRange: 15
   _playerLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   _wallLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 1024
 --- !u!1 &2952533104936921449
 GameObject:
   m_ObjectHideFlags: 0

@@ -64,6 +64,7 @@ namespace GraveyardHunter.Core
             _gameStateManager.ChangeState(GameState.MainMenu);
             _currentState = GameState.MainMenu;
             _uiManager.ShowPanel("UIMainMenu");
+            _audioManager.PlayMusic("MainMenuBGM", true);
         }
 
         private void OnDestroy()
@@ -173,6 +174,7 @@ namespace GraveyardHunter.Core
         private void OnNextLevel(NextLevelEvent evt)
         {
             _currentLevelIndex++;
+            PlayerProgressData.SetCurrentLevel(_currentLevelIndex);
             StartLevel(_currentLevelIndex);
         }
 
@@ -184,7 +186,7 @@ namespace GraveyardHunter.Core
             _gameStateManager.ChangeState(GameState.MainMenu);
             _currentState = GameState.MainMenu;
             _uiManager.ShowPanel("UIMainMenu");
-            _audioManager.StopMusic();
+            _audioManager.PlayMusic("MainMenuBGM", true);
         }
 
         private void OnPause(PauseEvent evt)
@@ -304,15 +306,14 @@ namespace GraveyardHunter.Core
             _gameStateManager.ChangeState(GameState.Playing);
             _currentState = GameState.Playing;
 
-            // Explicitly show GameplayUI after state change
-            // (ForceHideAllPanels unsubscribes GameplayUI from events,
-            //  so it can't self-activate from the GameStateChangedEvent)
+            // Show GameplayUI (ForceHideAllPanels unsubscribed it)
             _uiManager.ShowGameplayUI();
 
-            // Reset UI display with initial values for the new level
+            // Reset UI — use GetGameplayUI() directly, NOT GetPanel()
+            // GetPanel uses _panelDict which may not contain _gameplayUI
             var levelData = _levelManager.GetCurrentLevelData();
             var gameConfig = _levelManager.GetGameConfig();
-            var gameplayUI = _uiManager.GetPanel<UI.GameplayUI>("GameplayUI");
+            var gameplayUI = _uiManager.GetGameplayUI();
             if (gameplayUI != null && levelData != null && gameConfig != null)
             {
                 gameplayUI.ResetDisplay(levelIndex, gameConfig.PlayerMaxHP, levelData.TreasureRequirements, levelData.RequiredTreasures);
@@ -343,6 +344,11 @@ namespace GraveyardHunter.Core
             _audioManager.PlaySFX("LevelComplete");
 
             PlayerProgressData.SaveLevelProgress(_currentLevelIndex, score, stars);
+
+            // Advance to next level in PlayerPrefs so MainMenu shows correct progress
+            int nextLevel = _currentLevelIndex + 1;
+            if (nextLevel > PlayerProgressData.GetCurrentLevel())
+                PlayerProgressData.SetCurrentLevel(nextLevel);
         }
 
         private void HandleFail()

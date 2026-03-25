@@ -96,6 +96,9 @@ namespace GraveyardHunter.Audio
                 return;
             }
 
+            // Kill any running fade tween before switching tracks
+            _musicSource.DOKill();
+
             _musicSource.clip = entry.Clip;
             _musicSource.loop = loop;
             _musicSource.volume = _musicVolume;
