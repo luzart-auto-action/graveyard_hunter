@@ -210,6 +210,8 @@ namespace GraveyardHunter.UI
 
                 case Core.GameState.EscapePhase:
                     Show();
+                    if (_pauseButton != null) _pauseButton.interactable = true;
+                    if (_resetButton != null) _resetButton.interactable = true;
                     if (_escapeIndicator != null) _escapeIndicator.SetActive(true);
                     break;
 
@@ -277,7 +279,8 @@ namespace GraveyardHunter.UI
                 _boosterTimerFill.DOKill();
                 _boosterTimerFill.fillAmount = 1f;
                 _boosterTimerFill.DOFillAmount(0f, evt.Duration)
-                    .SetEase(Ease.Linear);
+                    .SetEase(Ease.Linear)
+                    .SetUpdate(true);
             }
         }
 
