@@ -25,7 +25,14 @@ namespace GraveyardHunter.Player
         private bool _hasSpeedBoost;
         private float _speedBoostMultiplier = 1f;
         private float _slowRecoveryTimer;
-        private bool _wasInLight;
+
+        /// <summary>
+        /// Reference counter: tracks how many ghosts currently see the player.
+        /// Fixes multi-ghost bug where one ghost losing sight would cancel
+        /// the slow effect from all other ghosts still shining on the player.
+        /// </summary>
+        [ShowInInspector, ReadOnly] private int _inLightCount;
+        private bool IsInLight => _inLightCount > 0;
 
         private bool _movementEnabled;
 
@@ -57,7 +64,7 @@ namespace GraveyardHunter.Player
             _hasSpeedBoost = false;
             _speedBoostMultiplier = 1f;
             _slowRecoveryTimer = 0f;
-            _wasInLight = false;
+            _inLightCount = 0;
             _movementEnabled = true;
             IsInvisible = false;
             IsInShelter = false;
@@ -117,7 +124,8 @@ namespace GraveyardHunter.Player
 
         private void HandleSlowRecovery()
         {
-            if (!_isSlowed || _wasInLight)
+            // Only start recovery when NOT in any ghost's light
+            if (!_isSlowed || IsInLight)
                 return;
 
             _slowRecoveryTimer += Time.deltaTime;
@@ -145,18 +153,21 @@ namespace GraveyardHunter.Player
 
         private void OnPlayerInLight(PlayerInLightEvent evt)
         {
-            bool isInLight = evt.InLight;
-
-            if (isInLight)
+            if (evt.InLight)
             {
+                _inLightCount++;
                 _isSlowed = true;
-                _wasInLight = true;
                 _slowRecoveryTimer = 0f;
             }
             else
             {
-                _wasInLight = false;
-                _slowRecoveryTimer = 0f;
+                _inLightCount = Mathf.Max(0, _inLightCount - 1);
+
+                // Only start slow recovery when ALL ghosts lose sight
+                if (!IsInLight)
+                {
+                    _slowRecoveryTimer = 0f;
+                }
             }
         }
 

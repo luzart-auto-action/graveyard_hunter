@@ -10,11 +10,20 @@ namespace GraveyardHunter.Player
         [ShowInInspector, ReadOnly] private int _currentHP;
 
         private int _maxHP;
-        private bool _isInLight;
         private float _damageTimer;
         private float _damagePerSecond;
         private bool _isDead;
         private bool _isInvulnerable;
+
+        /// <summary>
+        /// Reference counter: incremented when a ghost starts seeing the player,
+        /// decremented when it loses sight. Player takes damage when > 0.
+        /// Fixes the multi-ghost bug where one ghost publishing InLight=false
+        /// would cancel damage from all other ghosts still seeing the player.
+        /// </summary>
+        [ShowInInspector, ReadOnly] private int _inLightCount;
+
+        private bool IsInLight => _inLightCount > 0;
 
         public int CurrentHP => _currentHP;
         public bool IsDead => _isDead;
@@ -36,10 +45,9 @@ namespace GraveyardHunter.Player
             _damagePerSecond = config.LightDamagePerSecond;
             _isDead = false;
             _isInvulnerable = false;
-            _isInLight = false;
+            _inLightCount = 0;
             _damageTimer = 0f;
 
-            // Publish initial HP so UI updates immediately
             EventBus.Publish(new PlayerHPChangedEvent
             {
                 CurrentHP = _currentHP,
@@ -52,7 +60,7 @@ namespace GraveyardHunter.Player
             if (_isDead)
                 return;
 
-            if (_isInLight && !_isInvulnerable)
+            if (IsInLight && !_isInvulnerable)
             {
                 _damageTimer += Time.deltaTime;
 
@@ -106,6 +114,7 @@ namespace GraveyardHunter.Player
         {
             _currentHP = _maxHP;
             _isDead = false;
+            _inLightCount = 0;
             _damageTimer = 0f;
 
             EventBus.Publish(new PlayerHPChangedEvent
@@ -127,9 +136,17 @@ namespace GraveyardHunter.Player
 
         private void OnPlayerInLight(PlayerInLightEvent evt)
         {
-            _isInLight = evt.InLight;
+            if (evt.InLight)
+            {
+                _inLightCount++;
+            }
+            else
+            {
+                _inLightCount = Mathf.Max(0, _inLightCount - 1);
+            }
 
-            if (!_isInLight)
+            // Reset damage timer only when fully out of all lights
+            if (!IsInLight)
             {
                 _damageTimer = 0f;
             }
