@@ -30,6 +30,7 @@ namespace GraveyardHunter.Player
         private bool _movementEnabled;
 
         public bool IsInvisible { get; set; }
+        public bool IsInShelter { get; private set; }
 
         private void Awake()
         {
@@ -38,12 +39,14 @@ namespace GraveyardHunter.Player
 
             EventBus.Subscribe<PlayerInLightEvent>(OnPlayerInLight);
             EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
+            EventBus.Subscribe<PlayerShelterEvent>(OnPlayerShelter);
         }
 
         private void OnDestroy()
         {
             EventBus.Unsubscribe<PlayerInLightEvent>(OnPlayerInLight);
             EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
+            EventBus.Unsubscribe<PlayerShelterEvent>(OnPlayerShelter);
         }
 
         public void Initialize(GameConfig config)
@@ -54,6 +57,10 @@ namespace GraveyardHunter.Player
             _hasSpeedBoost = false;
             _speedBoostMultiplier = 1f;
             _slowRecoveryTimer = 0f;
+            _wasInLight = false;
+            _movementEnabled = true;
+            IsInvisible = false;
+            IsInShelter = false;
         }
 
         private void Update()
@@ -151,6 +158,11 @@ namespace GraveyardHunter.Player
                 _wasInLight = false;
                 _slowRecoveryTimer = 0f;
             }
+        }
+
+        private void OnPlayerShelter(PlayerShelterEvent evt)
+        {
+            IsInShelter = evt.IsInShelter;
         }
 
         private void OnGameStateChanged(GameStateChangedEvent evt)

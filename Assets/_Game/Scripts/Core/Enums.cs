@@ -57,7 +57,8 @@ namespace GraveyardHunter.Core
         Treasure,
         Trap,
         Booster,
-        EnemySpawn
+        EnemySpawn,
+        Obstacle
     }
 
     public enum Direction

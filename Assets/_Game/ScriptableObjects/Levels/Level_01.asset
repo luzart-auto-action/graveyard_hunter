@@ -17,10 +17,17 @@ MonoBehaviour:
   GridWidth: 12
   GridHeight: 12
   RequiredTreasures: 2
+  TreasureRequirements:
+  - Type: 0
+    Count: 2
   ThreeStarHP: 5
   TwoStarHP: 3
   OneStarHP: 1
   GhostCount: 1
+  AllowedEnemyTypes: 0000000001000000
+  ObstacleCount: 2
+  TrapCount: 0
+  BoosterCount: 0
   Placements:
   - Type: 2
     TrapType: 0
@@ -52,6 +59,18 @@ MonoBehaviour:
     TreasureType: 0
     GridX: 3
     GridY: 3
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
+    GridY: 9
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 5
   - Type: 7
     TrapType: 0
     BoosterType: 0

@@ -20,8 +20,11 @@ namespace GraveyardHunter.Level
         [BoxGroup("Grid")]
         public int GridHeight = 12;
 
-        [BoxGroup("Rules")]
+        [BoxGroup("Rules"), Tooltip("Legacy: total count. Use TreasureRequirements instead.")]
         public int RequiredTreasures = 3;
+
+        [BoxGroup("Rules"), TableList, Tooltip("Required treasure types and quantities. If empty, falls back to RequiredTreasures count.")]
+        public List<TreasureRequirement> TreasureRequirements = new();
 
         [BoxGroup("Rules"), Tooltip("Full HP remaining = 3 stars")]
         public int ThreeStarHP = 5;
@@ -49,6 +52,15 @@ namespace GraveyardHunter.Level
             return AllowedEnemyTypes[UnityEngine.Random.Range(0, AllowedEnemyTypes.Count)];
         }
 
+        [BoxGroup("Obstacles"), Tooltip("Number of hiding spots to spawn")]
+        public int ObstacleCount = 3;
+
+        [BoxGroup("Fallback Counts"), Tooltip("Random traps if no trap placements")]
+        public int TrapCount = 0;
+
+        [BoxGroup("Fallback Counts"), Tooltip("Random boosters if no booster placements")]
+        public int BoosterCount = 0;
+
         [BoxGroup("Placements"), TableList]
         public List<ObjectPlacement> Placements = new();
 
@@ -57,6 +69,13 @@ namespace GraveyardHunter.Level
 
         [BoxGroup("Maze"), TextArea(5, 10)]
         public string MazeLayout;
+    }
+
+    [System.Serializable]
+    public class TreasureRequirement
+    {
+        public TreasureType Type;
+        public int Count = 1;
     }
 
     [System.Serializable]

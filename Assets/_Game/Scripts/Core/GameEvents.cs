@@ -58,9 +58,17 @@ namespace GraveyardHunter.Core
         public TreasureType Type;
         public int CurrentCount;
         public int RequiredCount;
+        /// <summary>Per-type status: collected / required for each treasure type.</summary>
+        public System.Collections.Generic.Dictionary<TreasureType, (int collected, int required)> TypeStatus;
     }
 
     public struct AllTreasuresCollectedEvent { }
+
+    // === Shelter Events ===
+    public struct PlayerShelterEvent
+    {
+        public bool IsInShelter;
+    }
 
     // === Escape Events ===
     public struct EscapePhaseStartedEvent { }

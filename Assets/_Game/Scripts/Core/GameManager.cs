@@ -160,6 +160,8 @@ namespace GraveyardHunter.Core
 
         private void OnPlayButton(PlayButtonEvent evt)
         {
+            // Read the selected level (UIMainMenu may have changed it)
+            _currentLevelIndex = PlayerProgressData.GetCurrentLevel();
             StartLevel(_currentLevelIndex);
         }
 
@@ -306,6 +308,18 @@ namespace GraveyardHunter.Core
             // (ForceHideAllPanels unsubscribes GameplayUI from events,
             //  so it can't self-activate from the GameStateChangedEvent)
             _uiManager.ShowGameplayUI();
+
+            // Reset UI display with initial values for the new level
+            var levelData = _levelManager.GetCurrentLevelData();
+            var gameConfig = _levelManager.GetGameConfig();
+            var gameplayUI = _uiManager.GetPanel<UI.GameplayUI>("GameplayUI");
+            if (gameplayUI != null && levelData != null && gameConfig != null)
+            {
+                gameplayUI.ResetDisplay(levelIndex, gameConfig.PlayerMaxHP, levelData.TreasureRequirements, levelData.RequiredTreasures);
+            }
+
+            // Publish initial score reset
+            EventBus.Publish(new ScoreChangedEvent { TotalScore = 0 });
 
             _audioManager.PlayMusic("GameplayBGM", true);
         }

@@ -36,7 +36,15 @@ namespace GraveyardHunter.Player
             _damagePerSecond = config.LightDamagePerSecond;
             _isDead = false;
             _isInvulnerable = false;
+            _isInLight = false;
             _damageTimer = 0f;
+
+            // Publish initial HP so UI updates immediately
+            EventBus.Publish(new PlayerHPChangedEvent
+            {
+                CurrentHP = _currentHP,
+                MaxHP = _maxHP
+            });
         }
 
         private void Update()

@@ -110,8 +110,20 @@ namespace GraveyardHunter.Data
         [BoxGroup("Prefabs"), Required]
         public GameObject GhostPrefab;
 
-        [BoxGroup("Prefabs"), Required]
+        [BoxGroup("Prefabs"), Tooltip("Legacy fallback. Use typed treasure prefabs below.")]
         public GameObject TreasurePrefab;
+
+        [BoxGroup("Treasure Prefabs")]
+        public GameObject GoldTreasurePrefab;
+
+        [BoxGroup("Treasure Prefabs")]
+        public GameObject SilverTreasurePrefab;
+
+        [BoxGroup("Treasure Prefabs")]
+        public GameObject CoinTreasurePrefab;
+
+        [BoxGroup("Treasure Prefabs")]
+        public GameObject ArtifactTreasurePrefab;
 
         [BoxGroup("Prefabs"), Required]
         public GameObject ExitGatePrefab;
@@ -142,6 +154,21 @@ namespace GraveyardHunter.Data
 
         [BoxGroup("Prefabs"), Required]
         public GameObject GhostVisionPrefab;
+
+        [BoxGroup("Prefabs"), Required]
+        public GameObject ObstaclePrefab;
+
+        public GameObject GetTreasurePrefab(TreasureType type)
+        {
+            return type switch
+            {
+                TreasureType.Gold => GoldTreasurePrefab != null ? GoldTreasurePrefab : TreasurePrefab,
+                TreasureType.Silver => SilverTreasurePrefab != null ? SilverTreasurePrefab : TreasurePrefab,
+                TreasureType.Coin => CoinTreasurePrefab != null ? CoinTreasurePrefab : TreasurePrefab,
+                TreasureType.Artifact => ArtifactTreasurePrefab != null ? ArtifactTreasurePrefab : TreasurePrefab,
+                _ => TreasurePrefab
+            };
+        }
 
         [BoxGroup("Skins")]
         public List<SkinData> AvailableSkins;

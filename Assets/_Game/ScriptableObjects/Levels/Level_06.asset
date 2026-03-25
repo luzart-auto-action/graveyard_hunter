@@ -17,10 +17,21 @@ MonoBehaviour:
   GridWidth: 16
   GridHeight: 16
   RequiredTreasures: 4
+  TreasureRequirements:
+  - Type: 0
+    Count: 1
+  - Type: 1
+    Count: 1
+  - Type: 2
+    Count: 2
   ThreeStarHP: 5
   TwoStarHP: 3
   OneStarHP: 1
   GhostCount: 3
+  AllowedEnemyTypes: 00000000010000000200000003000000
+  ObstacleCount: 5
+  TrapCount: 3
+  BoosterCount: 2
   Placements:
   - Type: 2
     TrapType: 0
@@ -43,19 +54,19 @@ MonoBehaviour:
   - Type: 4
     TrapType: 0
     BoosterType: 0
-    TreasureType: 0
+    TreasureType: 1
     GridX: 13
     GridY: 5
   - Type: 4
     TrapType: 0
     BoosterType: 0
-    TreasureType: 0
+    TreasureType: 2
     GridX: 3
     GridY: 5
   - Type: 4
     TrapType: 0
     BoosterType: 0
-    TreasureType: 0
+    TreasureType: 2
     GridX: 7
     GridY: 9
   - Type: 4
@@ -94,12 +105,36 @@ MonoBehaviour:
     TreasureType: 0
     GridX: 13
     GridY: 3
-  - Type: 7
+  - Type: 8
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 11
     GridY: 9
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 11
+    GridY: 13
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 11
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 7
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
+    GridY: 3
   - Type: 7
     TrapType: 0
     BoosterType: 0
@@ -112,5 +147,11 @@ MonoBehaviour:
     TreasureType: 0
     GridX: 5
     GridY: 9
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 9
+    GridY: 3
   MazeSeed: 106
   MazeLayout: 

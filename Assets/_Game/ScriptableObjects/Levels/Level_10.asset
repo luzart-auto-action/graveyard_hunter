@@ -13,14 +13,27 @@ MonoBehaviour:
   m_Name: Level_10
   m_EditorClassIdentifier: 
   LevelIndex: 10
-  LevelName: Grand Finale
-  GridWidth: 20
-  GridHeight: 20
-  RequiredTreasures: 6
+  LevelName: Night Patrol
+  GridWidth: 16
+  GridHeight: 16
+  RequiredTreasures: 5
+  TreasureRequirements:
+  - Type: 0
+    Count: 1
+  - Type: 1
+    Count: 1
+  - Type: 2
+    Count: 1
+  - Type: 3
+    Count: 2
   ThreeStarHP: 5
   TwoStarHP: 3
   OneStarHP: 1
-  GhostCount: 5
+  GhostCount: 4
+  AllowedEnemyTypes: 00000000010000000200000003000000
+  ObstacleCount: 7
+  TrapCount: 6
+  BoosterCount: 3
   Placements:
   - Type: 2
     TrapType: 0
@@ -32,8 +45,8 @@ MonoBehaviour:
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
-    GridX: 18
-    GridY: 18
+    GridX: 14
+    GridY: 14
   - Type: 4
     TrapType: 0
     BoosterType: 0
@@ -43,57 +56,57 @@ MonoBehaviour:
   - Type: 4
     TrapType: 0
     BoosterType: 0
-    TreasureType: 0
+    TreasureType: 1
+    GridX: 9
+    GridY: 3
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 2
     GridX: 13
-    GridY: 3
+    GridY: 11
   - Type: 4
     TrapType: 0
     BoosterType: 0
-    TreasureType: 0
-    GridX: 15
-    GridY: 13
-  - Type: 4
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
+    TreasureType: 3
     GridX: 5
+    GridY: 9
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 3
+    GridX: 9
     GridY: 13
   - Type: 4
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
-    GridX: 11
-    GridY: 15
+    GridX: 3
+    GridY: 5
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 9
+    GridY: 7
   - Type: 4
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 7
-    GridY: 7
-  - Type: 4
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 3
     GridY: 5
-  - Type: 4
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 13
-    GridY: 17
   - Type: 5
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
-    GridX: 11
-    GridY: 11
+    GridX: 9
+    GridY: 9
   - Type: 5
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 5
-    GridY: 7
+    GridY: 5
   - Type: 5
     TrapType: 1
     BoosterType: 0
@@ -104,67 +117,103 @@ MonoBehaviour:
     TrapType: 1
     BoosterType: 0
     TreasureType: 0
-    GridX: 17
+    GridX: 11
+    GridY: 13
+  - Type: 5
+    TrapType: 2
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
     GridY: 5
   - Type: 5
     TrapType: 2
     BoosterType: 0
     TreasureType: 0
-    GridX: 9
-    GridY: 5
-  - Type: 5
-    TrapType: 2
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 17
-    GridY: 15
+    GridX: 11
+    GridY: 3
   - Type: 6
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 3
-    GridY: 17
+    GridY: 13
   - Type: 6
     TrapType: 0
     BoosterType: 1
     TreasureType: 0
-    GridX: 15
-    GridY: 9
+    GridX: 13
+    GridY: 7
   - Type: 6
     TrapType: 0
     BoosterType: 2
     TreasureType: 0
     GridX: 3
     GridY: 7
-  - Type: 7
+  - Type: 8
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 9
+    GridY: 11
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 11
+    GridY: 5
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 7
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 13
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 11
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 11
+    GridY: 9
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 3
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
     GridY: 7
   - Type: 7
     TrapType: 0
     BoosterType: 0
     TreasureType: 0
     GridX: 7
-    GridY: 13
-  - Type: 7
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 17
-    GridY: 7
-  - Type: 7
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 5
-    GridY: 5
-  - Type: 7
-    TrapType: 0
-    BoosterType: 0
-    TreasureType: 0
-    GridX: 15
     GridY: 11
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 9
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 3
   MazeSeed: 110
   MazeLayout: 

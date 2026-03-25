@@ -24,6 +24,7 @@ namespace GraveyardHunter.Editor
         private bool _createSpeedBoots = true;
         private bool _createShadowCloak = true;
         private bool _createGhostVision = true;
+        private bool _createObstacle = true;
         private bool _createWerewolf = true;
         private bool _createMonster = true;
         private bool _createRobot = true;
@@ -54,6 +55,7 @@ namespace GraveyardHunter.Editor
             _createSpeedBoots = EditorGUILayout.Toggle("SpeedBoots", _createSpeedBoots);
             _createShadowCloak = EditorGUILayout.Toggle("ShadowCloak", _createShadowCloak);
             _createGhostVision = EditorGUILayout.Toggle("GhostVision", _createGhostVision);
+            _createObstacle = EditorGUILayout.Toggle("Obstacle (Shelter)", _createObstacle);
 
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("Enemy Variants:", EditorStyles.boldLabel);
@@ -104,6 +106,8 @@ namespace GraveyardHunter.Editor
             if (_createSpeedBoots) CreateBoosterPrefab<Booster.SpeedBootsBooster>("SpeedBoots", "Booster_Speed", Core.BoosterType.SpeedBoots, PrimitiveType.Cube);
             if (_createShadowCloak) CreateBoosterPrefab<Booster.ShadowCloakBooster>("ShadowCloak", "Booster_Shadow", Core.BoosterType.ShadowCloak, PrimitiveType.Capsule);
             if (_createGhostVision) CreateBoosterPrefab<Booster.GhostVisionBooster>("GhostVision", "Booster_Vision", Core.BoosterType.GhostVision, PrimitiveType.Sphere);
+
+            if (_createObstacle) CreateObstaclePrefab();
 
             if (_createWerewolf) CreateEnemyVariantPrefab("Werewolf", new Color(1f, 0.3f, 0f), new Color(1f, 0.6f, 0.4f));
             if (_createMonster) CreateEnemyVariantPrefab("Monster", new Color(0.4f, 1f, 0.4f), new Color(0.5f, 1f, 0.5f));
@@ -350,47 +354,77 @@ namespace GraveyardHunter.Editor
             Log($"Created {enemyName} prefab.");
         }
 
-        // ======================== TREASURE ========================
+        // ======================== TREASURE (all types) ========================
 
         private void CreateTreasurePrefab()
         {
-            string path = $"{PrefabsPath}/Environment/Treasure.prefab";
-            if (PrefabExists(path)) { Log("Treasure prefab already exists."); return; }
+            // Legacy Gold prefab (for backward compatibility)
+            CreateTypedTreasurePrefab("Treasure", Core.TreasureType.Gold, PrimitiveType.Cube,
+                "Treasure_Gold", new Color(1f, 0.84f, 0f, 1f), new Vector3(0.5f, 0.5f, 0.5f));
+
+            // Per-type prefabs
+            CreateTypedTreasurePrefab("Treasure_Gold", Core.TreasureType.Gold, PrimitiveType.Cube,
+                "Treasure_Gold", new Color(1f, 0.84f, 0f, 1f), new Vector3(0.5f, 0.5f, 0.5f));
+
+            CreateTypedTreasurePrefab("Treasure_Silver", Core.TreasureType.Silver, PrimitiveType.Sphere,
+                "Treasure_Silver", new Color(0.75f, 0.75f, 0.82f, 1f), new Vector3(0.45f, 0.45f, 0.45f));
+
+            CreateTypedTreasurePrefab("Treasure_Coin", Core.TreasureType.Coin, PrimitiveType.Cylinder,
+                "Treasure_Coin", new Color(0.8f, 0.5f, 0.2f, 1f), new Vector3(0.5f, 0.1f, 0.5f));
+
+            CreateTypedTreasurePrefab("Treasure_Artifact", Core.TreasureType.Artifact, PrimitiveType.Cube,
+                "Treasure_Artifact", new Color(0.6f, 0.2f, 1f, 1f), new Vector3(0.35f, 0.55f, 0.35f));
+        }
+
+        private void CreateTypedTreasurePrefab(string prefabName, Core.TreasureType type,
+            PrimitiveType shape, string materialName, Color glowColor, Vector3 visualScale)
+        {
+            string path = $"{PrefabsPath}/Environment/{prefabName}.prefab";
+            if (PrefabExists(path)) { Log($"{prefabName} prefab already exists."); return; }
             EnsureFolder($"{PrefabsPath}/Environment");
 
-            var root = new GameObject("Treasure");
+            var root = new GameObject(prefabName);
             SafeSetTag(root, "Treasure");
             var col = root.AddComponent<BoxCollider>();
             col.isTrigger = true;
             col.size = new Vector3(1f, 1f, 1f);
 
-            // TreasurePickup script for collection logic
             var pickupComp = root.AddComponent<Level.TreasurePickup>();
 
-            var visual = CreatePrimitive("VisualRoot", root.transform, PrimitiveType.Cube, "Treasure_Gold");
-            visual.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+            var visual = CreatePrimitive("VisualRoot", root.transform, shape, materialName);
+            visual.transform.localScale = visualScale;
             visual.transform.localPosition = new Vector3(0f, 0.3f, 0f);
 
-            // Glow light
+            // For Artifact: rotate 45° to make diamond shape
+            if (type == Core.TreasureType.Artifact)
+                visual.transform.localRotation = Quaternion.Euler(0f, 45f, 45f);
+
+            // Glow light with type-specific color
             var glowGO = new GameObject("GlowLight");
             glowGO.transform.SetParent(root.transform);
             glowGO.transform.localPosition = new Vector3(0f, 0.5f, 0f);
             var glow = glowGO.AddComponent<Light>();
             glow.type = LightType.Point;
-            glow.range = 2f;
-            glow.intensity = 0.8f;
-            glow.color = new Color(1f, 0.84f, 0f, 1f);
+            glow.range = 3f;
+            glow.intensity = 1f;
+            glow.color = glowColor;
 
             // Assign TreasurePickup references
             var pickupSO = new SerializedObject(pickupComp);
             AssignRef(pickupSO, "_visualRoot", visual.transform);
             AssignRef(pickupSO, "_glowLight", glow);
+
+            // Set treasure type
+            var typeProp = pickupSO.FindProperty("_treasureType");
+            if (typeProp != null)
+                typeProp.enumValueIndex = (int)type;
+
             pickupSO.ApplyModifiedPropertiesWithoutUndo();
 
             CreateFXPoint("FX_Center", root.transform, new Vector3(0f, 0.5f, 0f));
 
             SavePrefab(root, path);
-            Log("Created Treasure prefab.");
+            Log($"Created {prefabName} prefab (type={type}, shape={shape}).");
         }
 
         // ======================== EXIT GATE ========================
@@ -622,6 +656,61 @@ namespace GraveyardHunter.Editor
             Log($"Created {name} prefab.");
         }
 
+        // ======================== OBSTACLE (Shelter) ========================
+
+        private void CreateObstaclePrefab()
+        {
+            string path = $"{PrefabsPath}/Environment/Obstacle.prefab";
+            if (PrefabExists(path)) { Log("Obstacle prefab already exists."); return; }
+            EnsureFolder($"{PrefabsPath}/Environment");
+
+            var root = new GameObject("Obstacle");
+
+            // Large trigger collider — bigger than 1 maze cell (2 units) so player enters easily
+            var col = root.AddComponent<BoxCollider>();
+            col.isTrigger = true;
+            col.size = new Vector3(2.5f, 3f, 2.5f);
+            col.center = new Vector3(0f, 1.5f, 0f);
+
+            // ObstacleShelter script
+            root.AddComponent<Level.ObstacleShelter>();
+
+            // === Visual: ruined shelter (3-walled structure with roof) ===
+
+            // Back wall (tall, wide)
+            var backWall = CreatePrimitive("BackWall", root.transform, PrimitiveType.Cube, "Obstacle_Stone");
+            backWall.transform.localScale = new Vector3(1.8f, 2.5f, 0.3f);
+            backWall.transform.localPosition = new Vector3(0f, 1.25f, 0.8f);
+
+            // Left wall
+            var leftWall = CreatePrimitive("LeftWall", root.transform, PrimitiveType.Cube, "Obstacle_Stone");
+            leftWall.transform.localScale = new Vector3(0.3f, 2.0f, 1.4f);
+            leftWall.transform.localPosition = new Vector3(-0.8f, 1.0f, 0.1f);
+
+            // Right wall
+            var rightWall = CreatePrimitive("RightWall", root.transform, PrimitiveType.Cube, "Obstacle_Stone");
+            rightWall.transform.localScale = new Vector3(0.3f, 2.0f, 1.4f);
+            rightWall.transform.localPosition = new Vector3(0.8f, 1.0f, 0.1f);
+
+            // Roof slab
+            var roof = CreatePrimitive("Roof", root.transform, PrimitiveType.Cube, "Obstacle_Stone");
+            roof.transform.localScale = new Vector3(1.8f, 0.2f, 1.6f);
+            roof.transform.localPosition = new Vector3(0f, 2.5f, 0.1f);
+
+            // Glow light inside — visible from far away
+            var glowGO = new GameObject("ShelterGlow");
+            glowGO.transform.SetParent(root.transform);
+            glowGO.transform.localPosition = new Vector3(0f, 1.2f, 0.3f);
+            var glow = glowGO.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.range = 5f;
+            glow.intensity = 1.2f;
+            glow.color = new Color(0.3f, 0.9f, 0.5f, 1f); // green safe glow
+
+            SavePrefab(root, path);
+            Log("Created Obstacle (Shelter) prefab.");
+        }
+
         // ======================== AUTO-ASSIGN GAME CONFIG ========================
 
         private void AutoAssignGameConfig()
@@ -639,6 +728,10 @@ namespace GraveyardHunter.Editor
             TryAssignPrefab(so, "PlayerPrefab", $"{PrefabsPath}/Characters/Player.prefab");
             TryAssignPrefab(so, "GhostPrefab", $"{PrefabsPath}/Characters/Ghost.prefab");
             TryAssignPrefab(so, "TreasurePrefab", $"{PrefabsPath}/Environment/Treasure.prefab");
+            TryAssignPrefab(so, "GoldTreasurePrefab", $"{PrefabsPath}/Environment/Treasure_Gold.prefab");
+            TryAssignPrefab(so, "SilverTreasurePrefab", $"{PrefabsPath}/Environment/Treasure_Silver.prefab");
+            TryAssignPrefab(so, "CoinTreasurePrefab", $"{PrefabsPath}/Environment/Treasure_Coin.prefab");
+            TryAssignPrefab(so, "ArtifactTreasurePrefab", $"{PrefabsPath}/Environment/Treasure_Artifact.prefab");
             TryAssignPrefab(so, "ExitGatePrefab", $"{PrefabsPath}/Environment/ExitGate.prefab");
             TryAssignPrefab(so, "WallPrefab", $"{PrefabsPath}/Environment/Wall.prefab");
             TryAssignPrefab(so, "FloorPrefab", $"{PrefabsPath}/Environment/Floor.prefab");
@@ -649,6 +742,7 @@ namespace GraveyardHunter.Editor
             TryAssignPrefab(so, "SpeedBootsPrefab", $"{PrefabsPath}/Boosters/SpeedBoots.prefab");
             TryAssignPrefab(so, "ShadowCloakPrefab", $"{PrefabsPath}/Boosters/ShadowCloak.prefab");
             TryAssignPrefab(so, "GhostVisionPrefab", $"{PrefabsPath}/Boosters/GhostVision.prefab");
+            TryAssignPrefab(so, "ObstaclePrefab", $"{PrefabsPath}/Environment/Obstacle.prefab");
 
             so.ApplyModifiedPropertiesWithoutUndo();
 

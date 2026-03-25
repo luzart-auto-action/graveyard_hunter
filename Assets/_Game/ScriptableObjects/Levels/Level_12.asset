@@ -1,0 +1,237 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3694e931dcd6c3f4d87b6fdab43cc6f0, type: 3}
+  m_Name: Level_12
+  m_EditorClassIdentifier: 
+  LevelIndex: 12
+  LevelName: Shadow Maze
+  GridWidth: 20
+  GridHeight: 20
+  RequiredTreasures: 6
+  TreasureRequirements:
+  - Type: 0
+    Count: 1
+  - Type: 1
+    Count: 1
+  - Type: 2
+    Count: 2
+  - Type: 3
+    Count: 2
+  ThreeStarHP: 5
+  TwoStarHP: 3
+  OneStarHP: 1
+  GhostCount: 4
+  AllowedEnemyTypes: 00000000010000000200000003000000
+  ObstacleCount: 8
+  TrapCount: 6
+  BoosterCount: 4
+  Placements:
+  - Type: 2
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 1
+    GridY: 1
+  - Type: 3
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 18
+    GridY: 18
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
+    GridY: 13
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 1
+    GridX: 3
+    GridY: 9
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 2
+    GridX: 15
+    GridY: 9
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 2
+    GridX: 15
+    GridY: 17
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 3
+    GridX: 13
+    GridY: 13
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 3
+    GridX: 9
+    GridY: 17
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 7
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 17
+    GridY: 5
+  - Type: 4
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
+    GridY: 3
+  - Type: 5
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 3
+  - Type: 5
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 17
+  - Type: 5
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 7
+  - Type: 5
+    TrapType: 1
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 11
+    GridY: 11
+  - Type: 5
+    TrapType: 1
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 17
+    GridY: 11
+  - Type: 5
+    TrapType: 2
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 9
+    GridY: 15
+  - Type: 6
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 11
+  - Type: 6
+    TrapType: 0
+    BoosterType: 1
+    TreasureType: 0
+    GridX: 13
+    GridY: 5
+  - Type: 6
+    TrapType: 0
+    BoosterType: 2
+    TreasureType: 0
+    GridX: 5
+    GridY: 17
+  - Type: 6
+    TrapType: 0
+    BoosterType: 3
+    TreasureType: 0
+    GridX: 7
+    GridY: 3
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 17
+    GridY: 7
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 5
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 11
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 13
+    GridY: 15
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 9
+    GridY: 9
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 11
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 15
+    GridY: 3
+  - Type: 8
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 5
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 11
+    GridY: 17
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 3
+    GridY: 15
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 5
+    GridY: 5
+  - Type: 7
+    TrapType: 0
+    BoosterType: 0
+    TreasureType: 0
+    GridX: 7
+    GridY: 13
+  MazeSeed: 112
+  MazeLayout: 

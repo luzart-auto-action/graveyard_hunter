@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using DG.Tweening;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using GraveyardHunter.Core;
+using GraveyardHunter.Level;
 
 namespace GraveyardHunter.UI
 {
@@ -97,6 +99,62 @@ namespace GraveyardHunter.UI
 
         // === Subscribe / Unsubscribe ===
 
+        /// <summary>
+        /// Reset all display elements to initial values for a new level.
+        /// Call this after ShowGameplayUI() when starting a new level.
+        /// </summary>
+        public void ResetDisplay(int levelIndex, int maxHP, List<TreasureRequirement> treasureReqs, int fallbackTotal)
+        {
+            if (_levelText != null)
+                _levelText.text = $"Level: {levelIndex + 1}";
+            if (_hpText != null)
+                _hpText.text = $"HP: {maxHP}/{maxHP}";
+            if (_scoreText != null)
+                _scoreText.text = "Score: 0";
+
+            // Treasure display: per-type if available
+            if (_treasureText != null)
+            {
+                if (treasureReqs != null && treasureReqs.Count > 0)
+                {
+                    _treasureText.text = BuildTreasureText(treasureReqs);
+                }
+                else
+                {
+                    _treasureText.text = $"Treasure: 0/{fallbackTotal}";
+                }
+            }
+
+            // Reset HP icons
+            if (_hpIcons != null)
+            {
+                for (int i = 0; i < _hpIcons.Length; i++)
+                {
+                    if (_hpIcons[i] != null)
+                        _hpIcons[i].enabled = i < maxHP;
+                }
+            }
+
+            // Reset escape indicator
+            if (_escapeIndicator != null)
+                _escapeIndicator.SetActive(false);
+
+            // Reset booster timer
+            if (_boosterTimerUI != null)
+                _boosterTimerUI.SetActive(false);
+        }
+
+        private static string BuildTreasureText(List<TreasureRequirement> reqs)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var req in reqs)
+            {
+                if (sb.Length > 0) sb.Append("  ");
+                sb.Append($"{req.Type}: 0/{req.Count}");
+            }
+            return sb.ToString();
+        }
+
         private void SubscribeEvents()
         {
             if (_eventsSubscribed) return;
@@ -179,11 +237,27 @@ namespace GraveyardHunter.UI
 
         private void OnTreasureCollected(TreasureCollectedEvent evt)
         {
-            if (_treasureText != null)
+            if (_treasureText == null) return;
+
+            // Per-type display if available
+            if (evt.TypeStatus != null && evt.TypeStatus.Count > 0)
             {
-                _treasureText.text = $"Treasure: {evt.CurrentCount}/{evt.RequiredCount}";
-                _treasureText.transform.DOPunchScale(Vector3.one * 0.3f, 0.3f, 5, 0.5f).SetUpdate(true);
+                var sb = new System.Text.StringBuilder();
+                foreach (var kvp in evt.TypeStatus)
+                {
+                    if (sb.Length > 0) sb.Append("  ");
+                    string check = kvp.Value.collected >= kvp.Value.required ? " <color=green>\u2713</color>" : "";
+                    sb.Append($"{kvp.Key}: {kvp.Value.collected}/{kvp.Value.required}{check}");
+                }
+                _treasureText.text = sb.ToString();
             }
+            else
+            {
+                // Legacy: simple total count
+                _treasureText.text = $"Treasure: {evt.CurrentCount}/{evt.RequiredCount}";
+            }
+
+            _treasureText.transform.DOPunchScale(Vector3.one * 0.3f, 0.3f, 5, 0.5f).SetUpdate(true);
         }
 
         private void OnScoreChanged(ScoreChangedEvent evt)

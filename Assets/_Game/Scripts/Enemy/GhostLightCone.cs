@@ -1,4 +1,5 @@
 using UnityEngine;
+using GraveyardHunter.Player;
 
 namespace GraveyardHunter.Enemy
 {
@@ -48,6 +49,11 @@ namespace GraveyardHunter.Enemy
         public bool IsPlayerInCone()
         {
             if (_player == null) return false;
+
+            // Player hidden in shelter or invisible → not detectable
+            var playerCtrl = _player.GetComponent<PlayerController>();
+            if (playerCtrl != null && (playerCtrl.IsInShelter || playerCtrl.IsInvisible))
+                return false;
 
             Vector3 directionToPlayer = _player.position - transform.position;
             float distanceToPlayer = directionToPlayer.magnitude;

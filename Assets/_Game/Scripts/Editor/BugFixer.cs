@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine.AI;
+using UnityEngine.UI;
+using TMPro;
 
 namespace GraveyardHunter.Editor
 {
@@ -31,7 +33,10 @@ namespace GraveyardHunter.Editor
                 "7. All enemy animations: creates AnimatorController + assigns to models\n" +
                 "8. Joystick: wires FloatingJoystick from Joystick Pack to InputManager\n" +
                 "9. Auto-populates EnemyTypes in GameConfig with prefab refs\n" +
-                "10. Auto-sets AllowedEnemyTypes in LevelData assets",
+                "10. Auto-sets AllowedEnemyTypes in LevelData assets\n" +
+                "11. Obstacle prefab: trigger collider + ObstacleShelter + GameConfig ref\n" +
+                "12. LevelManager: auto-populates _levels list from LevelData assets\n" +
+                "13. TutorialUI: creates tutorial overlay panel in Canvas",
                 MessageType.Info);
             EditorGUILayout.Space(10);
 
@@ -48,6 +53,9 @@ namespace GraveyardHunter.Editor
                 FixJoystickSetup();
                 FixEnemyTypesInGameConfig();
                 FixLevelDataEnemyTypes();
+                FixObstaclePrefab();
+                FixLevelManagerLevelsList();
+                CreateTutorialUI();
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
                 Log("--- All fixes applied! ---");
@@ -177,40 +185,60 @@ namespace GraveyardHunter.Editor
 
         private void FixTreasurePrefab()
         {
-            string path = "Assets/_Game/Prefabs/Environment/Treasure.prefab";
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab == null)
+            // Fix all treasure prefabs (legacy + typed)
+            string[] treasurePrefabs = {
+                "Assets/_Game/Prefabs/Environment/Treasure.prefab",
+                "Assets/_Game/Prefabs/Environment/Treasure_Gold.prefab",
+                "Assets/_Game/Prefabs/Environment/Treasure_Silver.prefab",
+                "Assets/_Game/Prefabs/Environment/Treasure_Coin.prefab",
+                "Assets/_Game/Prefabs/Environment/Treasure_Artifact.prefab",
+            };
+
+            foreach (var path in treasurePrefabs)
             {
-                Log("Treasure prefab not found at: " + path);
-                return;
+                FixSingleTreasurePrefab(path);
             }
 
-            // Open prefab for editing
+            // Auto-assign typed prefabs to GameConfig
+            string configPath = "Assets/_Game/ScriptableObjects/Configs/GameConfig.asset";
+            var config = AssetDatabase.LoadAssetAtPath<Data.GameConfig>(configPath);
+            if (config != null)
+            {
+                var so = new SerializedObject(config);
+
+                TryAssignPrefabRef(so, "GoldTreasurePrefab", "Assets/_Game/Prefabs/Environment/Treasure_Gold.prefab");
+                TryAssignPrefabRef(so, "SilverTreasurePrefab", "Assets/_Game/Prefabs/Environment/Treasure_Silver.prefab");
+                TryAssignPrefabRef(so, "CoinTreasurePrefab", "Assets/_Game/Prefabs/Environment/Treasure_Coin.prefab");
+                TryAssignPrefabRef(so, "ArtifactTreasurePrefab", "Assets/_Game/Prefabs/Environment/Treasure_Artifact.prefab");
+
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(config);
+                Log("Assigned typed treasure prefabs to GameConfig.");
+            }
+        }
+
+        private void FixSingleTreasurePrefab(string path)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) return;
+
             var root = PrefabUtility.LoadPrefabContents(path);
 
-            // Check if TreasurePickup already exists
-            if (root.GetComponent<Level.TreasurePickup>() != null)
-            {
-                Log("Treasure prefab already has TreasurePickup. Skipped.");
-                PrefabUtility.UnloadPrefabContents(root);
-                return;
-            }
-
-            var pickup = root.AddComponent<Level.TreasurePickup>();
+            // Ensure TreasurePickup component
+            var pickup = root.GetComponent<Level.TreasurePickup>();
+            if (pickup == null)
+                pickup = root.AddComponent<Level.TreasurePickup>();
 
             // Assign serialized references
             var so = new SerializedObject(pickup);
 
-            // Find VisualRoot child
             var visualRoot = root.transform.Find("VisualRoot");
             if (visualRoot != null)
             {
                 var prop = so.FindProperty("_visualRoot");
                 if (prop != null) prop.objectReferenceValue = visualRoot;
-                Log("  -> Assigned _visualRoot");
             }
 
-            // Find GlowLight child
             var glowLightGO = root.transform.Find("GlowLight");
             if (glowLightGO != null)
             {
@@ -219,16 +247,32 @@ namespace GraveyardHunter.Editor
                 {
                     var prop = so.FindProperty("_glowLight");
                     if (prop != null) prop.objectReferenceValue = light;
-                    Log("  -> Assigned _glowLight");
                 }
             }
+
+            // Ensure tag
+            try { root.tag = "Treasure"; } catch { }
+
+            // Ensure trigger collider
+            var col = root.GetComponent<BoxCollider>();
+            if (col == null) col = root.AddComponent<BoxCollider>();
+            col.isTrigger = true;
 
             so.ApplyModifiedPropertiesWithoutUndo();
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
 
-            Log("Fixed Treasure prefab: added TreasurePickup script with references.");
+            Log($"Fixed treasure prefab: {System.IO.Path.GetFileNameWithoutExtension(path)}");
+        }
+
+        private void TryAssignPrefabRef(SerializedObject so, string fieldName, string prefabPath)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null) return;
+            var prop = so.FindProperty(fieldName);
+            if (prop != null)
+                prop.objectReferenceValue = prefab;
         }
 
         private void FixExitGatePrefab()
@@ -732,6 +776,317 @@ namespace GraveyardHunter.Editor
                 UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
 
             Log("Fixed Joystick: instantiated FloatingJoystick under GameplayUI, wired to InputManager.");
+        }
+
+        // ======================== OBSTACLE PREFAB ========================
+
+        private void FixObstaclePrefab()
+        {
+            string prefabPath = "Assets/_Game/Prefabs/Environment/Obstacle.prefab";
+
+            // Delete and recreate if exists (to apply new larger design)
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
+            {
+                AssetDatabase.DeleteAsset(prefabPath);
+                AssetDatabase.Refresh();
+                Log("Deleted old small Obstacle prefab.");
+            }
+
+            // Recreate with large shelter design
+            var root = new GameObject("Obstacle");
+
+            // Large trigger collider — bigger than 1 maze cell so player enters easily
+            var col = root.AddComponent<BoxCollider>();
+            col.isTrigger = true;
+            col.size = new Vector3(2.5f, 3f, 2.5f);
+            col.center = new Vector3(0f, 1.5f, 0f);
+
+            root.AddComponent<Level.ObstacleShelter>();
+
+            // Back wall
+            var backWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            backWall.name = "BackWall";
+            backWall.transform.SetParent(root.transform);
+            backWall.transform.localScale = new Vector3(1.8f, 2.5f, 0.3f);
+            backWall.transform.localPosition = new Vector3(0f, 1.25f, 0.8f);
+            Object.DestroyImmediate(backWall.GetComponent<Collider>());
+            ApplyObstacleMaterial(backWall);
+
+            // Left wall
+            var leftWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            leftWall.name = "LeftWall";
+            leftWall.transform.SetParent(root.transform);
+            leftWall.transform.localScale = new Vector3(0.3f, 2.0f, 1.4f);
+            leftWall.transform.localPosition = new Vector3(-0.8f, 1.0f, 0.1f);
+            Object.DestroyImmediate(leftWall.GetComponent<Collider>());
+            ApplyObstacleMaterial(leftWall);
+
+            // Right wall
+            var rightWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rightWall.name = "RightWall";
+            rightWall.transform.SetParent(root.transform);
+            rightWall.transform.localScale = new Vector3(0.3f, 2.0f, 1.4f);
+            rightWall.transform.localPosition = new Vector3(0.8f, 1.0f, 0.1f);
+            Object.DestroyImmediate(rightWall.GetComponent<Collider>());
+            ApplyObstacleMaterial(rightWall);
+
+            // Roof
+            var roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            roof.name = "Roof";
+            roof.transform.SetParent(root.transform);
+            roof.transform.localScale = new Vector3(1.8f, 0.2f, 1.6f);
+            roof.transform.localPosition = new Vector3(0f, 2.5f, 0.1f);
+            Object.DestroyImmediate(roof.GetComponent<Collider>());
+            ApplyObstacleMaterial(roof);
+
+            // Green glow light visible from far away
+            var glowGO = new GameObject("ShelterGlow");
+            glowGO.transform.SetParent(root.transform);
+            glowGO.transform.localPosition = new Vector3(0f, 1.2f, 0.3f);
+            var glow = glowGO.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.range = 5f;
+            glow.intensity = 1.2f;
+            glow.color = new Color(0.3f, 0.9f, 0.5f, 1f);
+
+            // Ensure folder exists
+            EnsureFolder("Assets/_Game/Prefabs/Environment");
+            PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            Object.DestroyImmediate(root);
+
+            // Assign to GameConfig
+            string configPath = "Assets/_Game/ScriptableObjects/Configs/GameConfig.asset";
+            var config = AssetDatabase.LoadAssetAtPath<Data.GameConfig>(configPath);
+            if (config != null)
+            {
+                config.ObstaclePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                EditorUtility.SetDirty(config);
+            }
+
+            Log("Rebuilt Obstacle prefab: large shelter (3 walls + roof + glow) + GameConfig ref.");
+        }
+
+        private void ApplyObstacleMaterial(GameObject go)
+        {
+            var mat = MaterialFactory.GetOrCreateMaterial("Obstacle_Stone");
+            if (mat != null)
+            {
+                var renderer = go.GetComponent<MeshRenderer>();
+                if (renderer != null) renderer.sharedMaterial = mat;
+            }
+        }
+
+        // ======================== TUTORIAL UI ========================
+
+        private void CreateTutorialUI()
+        {
+            // Skip if TutorialUI already exists
+            if (Object.FindObjectOfType<UI.TutorialUI>(true) != null)
+            {
+                Log("TutorialUI already exists in scene. Skipped.");
+                return;
+            }
+
+            var canvas = Object.FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                Log("No Canvas found. Cannot create TutorialUI.");
+                return;
+            }
+
+            // Root panel
+            var root = new GameObject("TutorialUI");
+            root.transform.SetParent(canvas.transform, false);
+            var rootRect = root.AddComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            // Dark overlay
+            var overlay = root.AddComponent<Image>();
+            overlay.color = new Color(0f, 0f, 0f, 0.7f);
+            overlay.raycastTarget = true;
+
+            // Message box (center)
+            var msgBox = new GameObject("MessageBox");
+            msgBox.transform.SetParent(root.transform, false);
+            var msgBoxRect = msgBox.AddComponent<RectTransform>();
+            msgBoxRect.anchorMin = new Vector2(0.15f, 0.2f);
+            msgBoxRect.anchorMax = new Vector2(0.85f, 0.8f);
+            msgBoxRect.offsetMin = Vector2.zero;
+            msgBoxRect.offsetMax = Vector2.zero;
+            var msgBoxImg = msgBox.AddComponent<Image>();
+            msgBoxImg.color = new Color(0.1f, 0.08f, 0.18f, 0.95f);
+
+            // Message text
+            var msgTextGO = new GameObject("MessageText");
+            msgTextGO.transform.SetParent(msgBox.transform, false);
+            var msgTextRect = msgTextGO.AddComponent<RectTransform>();
+            msgTextRect.anchorMin = new Vector2(0.05f, 0.25f);
+            msgTextRect.anchorMax = new Vector2(0.95f, 0.95f);
+            msgTextRect.offsetMin = Vector2.zero;
+            msgTextRect.offsetMax = Vector2.zero;
+            var msgTMP = msgTextGO.AddComponent<TextMeshProUGUI>();
+            msgTMP.text = "Tutorial";
+            msgTMP.fontSize = 24;
+            msgTMP.alignment = TextAlignmentOptions.Center;
+            msgTMP.color = Color.white;
+            msgTMP.enableWordWrapping = true;
+            msgTMP.richText = true;
+            msgTMP.raycastTarget = false;
+
+            // Step counter text (top-right)
+            var counterGO = new GameObject("StepCounter");
+            counterGO.transform.SetParent(msgBox.transform, false);
+            var counterRect = counterGO.AddComponent<RectTransform>();
+            counterRect.anchorMin = new Vector2(0.7f, 0.9f);
+            counterRect.anchorMax = new Vector2(0.95f, 1f);
+            counterRect.offsetMin = Vector2.zero;
+            counterRect.offsetMax = Vector2.zero;
+            var counterTMP = counterGO.AddComponent<TextMeshProUGUI>();
+            counterTMP.text = "1/6";
+            counterTMP.fontSize = 18;
+            counterTMP.alignment = TextAlignmentOptions.Right;
+            counterTMP.color = new Color(0.6f, 0.6f, 0.7f, 1f);
+            counterTMP.raycastTarget = false;
+
+            // OK button
+            var okBtnGO = new GameObject("OKButton");
+            okBtnGO.transform.SetParent(msgBox.transform, false);
+            var okRect = okBtnGO.AddComponent<RectTransform>();
+            okRect.anchorMin = new Vector2(0.3f, 0.03f);
+            okRect.anchorMax = new Vector2(0.7f, 0.18f);
+            okRect.offsetMin = Vector2.zero;
+            okRect.offsetMax = Vector2.zero;
+            var okImg = okBtnGO.AddComponent<Image>();
+            okImg.color = new Color(0.2f, 0.75f, 0.3f, 1f);
+            var okBtn = okBtnGO.AddComponent<Button>();
+            okBtn.targetGraphic = okImg;
+
+            var okTextGO = new GameObject("Text");
+            okTextGO.transform.SetParent(okBtnGO.transform, false);
+            var okTextRect = okTextGO.AddComponent<RectTransform>();
+            okTextRect.anchorMin = Vector2.zero;
+            okTextRect.anchorMax = Vector2.one;
+            okTextRect.offsetMin = Vector2.zero;
+            okTextRect.offsetMax = Vector2.zero;
+            var okTMP = okTextGO.AddComponent<TextMeshProUGUI>();
+            okTMP.text = "OK";
+            okTMP.fontSize = 24;
+            okTMP.fontStyle = FontStyles.Bold;
+            okTMP.alignment = TextAlignmentOptions.Center;
+            okTMP.color = Color.white;
+            okTMP.raycastTarget = false;
+
+            // Skip button (bottom-right, smaller)
+            var skipBtnGO = new GameObject("SkipButton");
+            skipBtnGO.transform.SetParent(msgBox.transform, false);
+            var skipRect = skipBtnGO.AddComponent<RectTransform>();
+            skipRect.anchorMin = new Vector2(0.75f, 0.03f);
+            skipRect.anchorMax = new Vector2(0.97f, 0.18f);
+            skipRect.offsetMin = Vector2.zero;
+            skipRect.offsetMax = Vector2.zero;
+            var skipImg = skipBtnGO.AddComponent<Image>();
+            skipImg.color = new Color(0.4f, 0.35f, 0.45f, 1f);
+            var skipBtn = skipBtnGO.AddComponent<Button>();
+            skipBtn.targetGraphic = skipImg;
+
+            var skipTextGO = new GameObject("Text");
+            skipTextGO.transform.SetParent(skipBtnGO.transform, false);
+            var skipTextRect = skipTextGO.AddComponent<RectTransform>();
+            skipTextRect.anchorMin = Vector2.zero;
+            skipTextRect.anchorMax = Vector2.one;
+            skipTextRect.offsetMin = Vector2.zero;
+            skipTextRect.offsetMax = Vector2.zero;
+            var skipTMP = skipTextGO.AddComponent<TextMeshProUGUI>();
+            skipTMP.text = "Skip";
+            skipTMP.fontSize = 18;
+            skipTMP.alignment = TextAlignmentOptions.Center;
+            skipTMP.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+            skipTMP.raycastTarget = false;
+
+            // Add TutorialUI component & wire refs
+            var tutComp = root.AddComponent<UI.TutorialUI>();
+            var so = new SerializedObject(tutComp);
+            var panelProp = so.FindProperty("_panel");
+            if (panelProp != null) panelProp.objectReferenceValue = root;
+
+            var overlayProp = so.FindProperty("_overlay");
+            if (overlayProp != null) overlayProp.objectReferenceValue = overlay;
+
+            var msgProp = so.FindProperty("_messageText");
+            if (msgProp != null) msgProp.objectReferenceValue = msgTMP;
+
+            var counterProp = so.FindProperty("_stepCounterText");
+            if (counterProp != null) counterProp.objectReferenceValue = counterTMP;
+
+            var okProp = so.FindProperty("_okButton");
+            if (okProp != null) okProp.objectReferenceValue = okBtn;
+
+            var skipProp = so.FindProperty("_skipButton");
+            if (skipProp != null) skipProp.objectReferenceValue = skipBtn;
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // Start hidden
+            root.SetActive(true);
+            // The panel hides itself in Awake
+
+            EditorUtility.SetDirty(root);
+            EditorUtility.SetDirty(canvas.gameObject);
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+
+            Log("Created TutorialUI panel under Canvas.");
+        }
+
+        // ======================== LEVEL MANAGER LEVELS LIST ========================
+
+        private void FixLevelManagerLevelsList()
+        {
+            var levelManager = Object.FindObjectOfType<Level.LevelManager>(true);
+            if (levelManager == null)
+            {
+                Log("LevelManager not found in scene.");
+                return;
+            }
+
+            // Find all LevelData assets sorted by index
+            string[] guids = AssetDatabase.FindAssets("t:LevelData", new[] { "Assets/_Game/ScriptableObjects/Levels" });
+            var allLevels = new System.Collections.Generic.List<Level.LevelData>();
+
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var ld = AssetDatabase.LoadAssetAtPath<Level.LevelData>(path);
+                if (ld != null) allLevels.Add(ld);
+            }
+
+            allLevels.Sort((a, b) => a.LevelIndex.CompareTo(b.LevelIndex));
+
+            var so = new SerializedObject(levelManager);
+            var levelsProp = so.FindProperty("_levels");
+            if (levelsProp == null)
+            {
+                Log("LevelManager._levels field not found.");
+                return;
+            }
+
+            levelsProp.arraySize = allLevels.Count;
+            for (int i = 0; i < allLevels.Count; i++)
+            {
+                levelsProp.GetArrayElementAtIndex(i).objectReferenceValue = allLevels[i];
+            }
+
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(levelManager);
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+
+            Log($"Fixed LevelManager: populated _levels with {allLevels.Count} LevelData assets.");
         }
 
         // ======================== HELPER: Ensure Folder ========================

@@ -4,6 +4,7 @@ using DG.Tweening;
 using Sirenix.OdinInspector;
 using GraveyardHunter.Core;
 using GraveyardHunter.Data;
+using GraveyardHunter.Player;
 
 namespace GraveyardHunter.Enemy
 {
@@ -37,6 +38,12 @@ namespace GraveyardHunter.Enemy
         private bool _wasPlayerDetected;
         private bool _needsFirstDestination;
 
+        // Search behavior: ghost investigates nearby points after losing sight
+        private int _searchPointsChecked;
+        private const int MaxSearchPoints = 3;
+        private const float SearchRadius = 5f;
+        private bool _isSearching;
+
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
@@ -45,6 +52,7 @@ namespace GraveyardHunter.Enemy
             EventBus.Subscribe<NoiseTriggeredEvent>(OnNoiseTriggered);
             EventBus.Subscribe<EscapePhaseStartedEvent>(OnEscapePhaseStarted);
             EventBus.Subscribe<GameStateChangedEvent>(OnGameStateChanged);
+            EventBus.Subscribe<PlayerShelterEvent>(OnPlayerShelter);
         }
 
         private void OnDestroy()
@@ -52,6 +60,7 @@ namespace GraveyardHunter.Enemy
             EventBus.Unsubscribe<NoiseTriggeredEvent>(OnNoiseTriggered);
             EventBus.Unsubscribe<EscapePhaseStartedEvent>(OnEscapePhaseStarted);
             EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
+            EventBus.Unsubscribe<PlayerShelterEvent>(OnPlayerShelter);
         }
 
         /// <summary>Legacy initialize using global GameConfig ghost settings.</summary>
@@ -164,6 +173,8 @@ namespace GraveyardHunter.Enemy
 
                 case GhostState.Chase:
                     _agent.speed = _isEscapePhase ? _chaseSpeed * 1.2f : _chaseSpeed;
+                    _isSearching = false;
+                    _searchPointsChecked = 0;
                     break;
             }
 
@@ -186,32 +197,78 @@ namespace GraveyardHunter.Enemy
 
         private void ChaseBehavior()
         {
+            // Check if player is hiding in shelter → give up immediately
+            if (IsPlayerInShelter())
+            {
+                AbandonChase();
+                return;
+            }
+
             if (_lightCone.IsPlayerInCone())
             {
+                // Player visible → pursue directly, reset search state
                 _lastKnownPlayerPos = _playerTransform.position;
                 _agent.SetDestination(_playerTransform.position);
-                _wallCheckTimer = 0f;
+                _isSearching = false;
+                _searchPointsChecked = 0;
             }
-            else
+            else if (!_isSearching)
             {
+                // Lost sight → go to last known position first
                 _agent.SetDestination(_lastKnownPlayerPos);
-                _wallCheckTimer += Time.deltaTime;
-
-                if (CheckWallAhead() || _wallCheckTimer > _chaseTimeout)
-                {
-                    OnReachWallDuringChase();
-                }
 
                 if (!_agent.pathPending && _agent.remainingDistance < 0.5f)
                 {
-                    OnReachWallDuringChase();
+                    // Reached last known position, start searching nearby
+                    _isSearching = true;
+                    _searchPointsChecked = 0;
+                    PickSearchPoint();
+                }
+            }
+            else
+            {
+                // Searching nearby points
+                if (!_agent.pathPending && _agent.remainingDistance < 0.5f)
+                {
+                    _searchPointsChecked++;
+
+                    if (_searchPointsChecked >= MaxSearchPoints)
+                    {
+                        // Exhausted search → give up
+                        AbandonChase();
+                    }
+                    else
+                    {
+                        PickSearchPoint();
+                    }
                 }
             }
         }
 
-        private void OnReachWallDuringChase()
+        private void PickSearchPoint()
         {
-            _wallCheckTimer = 0f;
+            Vector3 searchCenter = _lastKnownPlayerPos;
+            Vector3 randomDir = Random.insideUnitSphere * SearchRadius;
+            randomDir.y = 0f;
+            Vector3 searchTarget = searchCenter + randomDir;
+
+            if (NavMesh.SamplePosition(searchTarget, out NavMeshHit hit, SearchRadius, NavMesh.AllAreas))
+            {
+                _agent.SetDestination(hit.position);
+            }
+        }
+
+        private bool IsPlayerInShelter()
+        {
+            if (_playerTransform == null) return false;
+            var playerCtrl = _playerTransform.GetComponent<PlayerController>();
+            return playerCtrl != null && playerCtrl.IsInShelter;
+        }
+
+        private void AbandonChase()
+        {
+            _isSearching = false;
+            _searchPointsChecked = 0;
             SetState(GhostState.Scan);
         }
 
@@ -251,6 +308,15 @@ namespace GraveyardHunter.Enemy
             if (_currentState == GhostState.Scan)
             {
                 _agent.SetDestination(evt.Position);
+            }
+        }
+
+        private void OnPlayerShelter(PlayerShelterEvent evt)
+        {
+            // If player enters shelter while we're chasing, abandon chase
+            if (evt.IsInShelter && _currentState == GhostState.Chase)
+            {
+                AbandonChase();
             }
         }
 

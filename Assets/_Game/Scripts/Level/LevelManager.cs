@@ -48,6 +48,12 @@ namespace GraveyardHunter.Level
             ClearLevel();
 
             _currentLevelIndex = index;
+            if (index < 0 || index >= _levels.Count)
+            {
+                Debug.LogError($"[LevelManager] Level index {index} out of range (0-{_levels.Count - 1}). Clamping.");
+                index = Mathf.Clamp(index, 0, _levels.Count - 1);
+                _currentLevelIndex = index;
+            }
             _currentLevelData = _levels[index];
 
             _levelRoot = new GameObject($"Level_{index}_{_currentLevelData.LevelName}").transform;
@@ -213,51 +219,61 @@ namespace GraveyardHunter.Level
 
         private void SpawnObjects(CellType[,] mazeGrid)
         {
-            if (_currentLevelData.Placements == null)
-                return;
-
             int ghostId = 0;
+            int trapCount = 0;
+            int boosterCount = 0;
+            int obstacleCount = 0;
 
-            foreach (var placement in _currentLevelData.Placements)
+            // Phase 1: Spawn from placements
+            if (_currentLevelData.Placements != null)
             {
-                Vector3 worldPos = GridToWorld(placement.GridX, placement.GridY);
-
-                switch (placement.Type)
+                foreach (var placement in _currentLevelData.Placements)
                 {
-                    case CellType.PlayerSpawn:
-                        SpawnPlayer(worldPos);
-                        break;
+                    Vector3 worldPos = GridToWorld(placement.GridX, placement.GridY);
 
-                    case CellType.EnemySpawn:
-                        SpawnEnemy(worldPos, ghostId++, _currentLevelData.GetRandomEnemyType());
-                        break;
+                    switch (placement.Type)
+                    {
+                        case CellType.PlayerSpawn:
+                            SpawnPlayer(worldPos);
+                            break;
 
-                    case CellType.Treasure:
-                        var treasure = Instantiate(_gameConfig.TreasurePrefab, worldPos, Quaternion.identity, _levelRoot);
-                        _spawnedObjects.Add(treasure);
-                        break;
+                        case CellType.EnemySpawn:
+                            SpawnEnemy(worldPos, ghostId++, _currentLevelData.GetRandomEnemyType());
+                            break;
 
-                    case CellType.Trap:
-                        SpawnTrap(placement.TrapType, worldPos);
-                        break;
+                        case CellType.Treasure:
+                            SpawnTreasure(placement.TreasureType, worldPos);
+                            break;
 
-                    case CellType.Booster:
-                        SpawnBooster(placement.BoosterType, worldPos);
-                        break;
+                        case CellType.Trap:
+                            SpawnTrap(placement.TrapType, worldPos);
+                            trapCount++;
+                            break;
+
+                        case CellType.Booster:
+                            SpawnBooster(placement.BoosterType, worldPos);
+                            boosterCount++;
+                            break;
+
+                        case CellType.Obstacle:
+                            SpawnObstacle(worldPos);
+                            obstacleCount++;
+                            break;
+                    }
                 }
             }
 
-            // If no player spawn was placed via placements, spawn at grid (1,1)
+            // Phase 2: Fallback player spawn
             if (_playerInstance == null)
             {
                 SpawnPlayer(GridToWorld(1, 1));
             }
 
-            // If no ghosts were placed via placements, spawn from GhostCount
+            var emptyCells = MazeGenerator.GetEmptyCells(mazeGrid);
+
+            // Phase 3: Random ghost spawning if none placed
             if (_ghostInstances.Count == 0 && _currentLevelData.GhostCount > 0)
             {
-                var emptyCells = MazeGenerator.GetEmptyCells(mazeGrid);
-
                 for (int i = 0; i < _currentLevelData.GhostCount && emptyCells.Count > 0; i++)
                 {
                     int randomIndex = Random.Range(0, emptyCells.Count);
@@ -267,6 +283,40 @@ namespace GraveyardHunter.Level
                     var enemyType = _currentLevelData.GetRandomEnemyType();
                     SpawnEnemy(GridToWorld(cell.x, cell.y), ghostId++, enemyType);
                 }
+            }
+
+            // Phase 4: Random obstacle spawning
+            int remainingObstacles = _currentLevelData.ObstacleCount - obstacleCount;
+            for (int i = 0; i < remainingObstacles && emptyCells.Count > 0; i++)
+            {
+                int randomIndex = Random.Range(0, emptyCells.Count);
+                Vector2Int cell = emptyCells[randomIndex];
+                emptyCells.RemoveAt(randomIndex);
+                SpawnObstacle(GridToWorld(cell.x, cell.y));
+            }
+
+            // Phase 5: Random trap spawning if none placed
+            int remainingTraps = _currentLevelData.TrapCount - trapCount;
+            for (int i = 0; i < remainingTraps && emptyCells.Count > 0; i++)
+            {
+                int randomIndex = Random.Range(0, emptyCells.Count);
+                Vector2Int cell = emptyCells[randomIndex];
+                emptyCells.RemoveAt(randomIndex);
+
+                TrapType randomTrap = (TrapType)Random.Range(0, 3);
+                SpawnTrap(randomTrap, GridToWorld(cell.x, cell.y));
+            }
+
+            // Phase 6: Random booster spawning if none placed
+            int remainingBoosters = _currentLevelData.BoosterCount - boosterCount;
+            for (int i = 0; i < remainingBoosters && emptyCells.Count > 0; i++)
+            {
+                int randomIndex = Random.Range(0, emptyCells.Count);
+                Vector2Int cell = emptyCells[randomIndex];
+                emptyCells.RemoveAt(randomIndex);
+
+                BoosterType randomBooster = (BoosterType)Random.Range(0, 4);
+                SpawnBooster(randomBooster, GridToWorld(cell.x, cell.y));
             }
         }
 
@@ -284,7 +334,13 @@ namespace GraveyardHunter.Level
 
             var inventory = playerObj.GetComponent<PlayerInventory>();
             if (inventory != null)
-                inventory.Initialize(_currentLevelData.RequiredTreasures);
+            {
+                // Use per-type requirements if configured, otherwise fallback to total count
+                if (_currentLevelData.TreasureRequirements != null && _currentLevelData.TreasureRequirements.Count > 0)
+                    inventory.Initialize(_currentLevelData.TreasureRequirements);
+                else
+                    inventory.Initialize(_currentLevelData.RequiredTreasures);
+            }
 
             var lightSystem = playerObj.GetComponent<PlayerLightSystem>();
             if (lightSystem != null)
@@ -324,6 +380,22 @@ namespace GraveyardHunter.Level
             SpawnEnemy(position, id, Core.EnemyType.Ghost);
         }
 
+        private void SpawnTreasure(TreasureType treasureType, Vector3 position)
+        {
+            var prefab = _gameConfig.GetTreasurePrefab(treasureType);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[LevelManager] No prefab for treasure type {treasureType}, using fallback.");
+                prefab = _gameConfig.TreasurePrefab;
+            }
+
+            var treasure = Instantiate(prefab, position, Quaternion.identity, _levelRoot);
+            var pickup = treasure.GetComponent<TreasurePickup>();
+            if (pickup != null)
+                pickup.SetTreasureType(treasureType);
+            _spawnedObjects.Add(treasure);
+        }
+
         private void SpawnTrap(TrapType trapType, Vector3 position)
         {
             GameObject prefab = trapType switch
@@ -336,6 +408,14 @@ namespace GraveyardHunter.Level
 
             var trap = Instantiate(prefab, position, Quaternion.identity, _levelRoot);
             _spawnedObjects.Add(trap);
+        }
+
+        private void SpawnObstacle(Vector3 position)
+        {
+            if (_gameConfig.ObstaclePrefab == null) return;
+
+            var obstacle = Instantiate(_gameConfig.ObstaclePrefab, position, Quaternion.identity, _levelRoot);
+            _spawnedObjects.Add(obstacle);
         }
 
         private void SpawnBooster(BoosterType boosterType, Vector3 position)
@@ -366,6 +446,11 @@ namespace GraveyardHunter.Level
         public LevelData GetCurrentLevelData()
         {
             return _currentLevelData;
+        }
+
+        public GameConfig GetGameConfig()
+        {
+            return _gameConfig;
         }
 
         public int CalculateScore()

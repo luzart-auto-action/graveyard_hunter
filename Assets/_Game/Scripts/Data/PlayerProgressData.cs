@@ -98,6 +98,17 @@ namespace GraveyardHunter.Data
             PlayerPrefs.Save();
         }
 
+        public static bool IsTutorialCompleted()
+        {
+            return PlayerPrefs.GetInt("TutorialCompleted", 0) == 1;
+        }
+
+        public static void SetTutorialCompleted(bool completed)
+        {
+            PlayerPrefs.SetInt("TutorialCompleted", completed ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
         public static void ResetAll()
         {
             PlayerPrefs.DeleteAll();

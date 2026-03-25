@@ -26,6 +26,51 @@ MonoBehaviour:
   GhostLightConeAngle: 80
   GhostLightRange: 10
   GhostEscapeSpeedBoost: 1.2
+  EnemyTypes:
+  - Type: 0
+    ScanSpeed: 2.5
+    ChaseSpeed: 4
+    LightConeAngle: 80
+    LightRange: 10
+    PatrolRadius: 15
+    ChaseTimeout: 3
+    EyeColor: {r: 1, g: 0.84, b: 0, a: 1}
+    ChaseLightColor: {r: 1, g: 0, b: 0, a: 1}
+    ConeLightColor: {r: 0.9, g: 0.9, b: 1, a: 1}
+    Prefab: {fileID: 6016688276179071124, guid: 26802c1836db7d8458caabffe3376046, type: 3}
+  - Type: 1
+    ScanSpeed: 3.5
+    ChaseSpeed: 5.5
+    LightConeAngle: 100
+    LightRange: 8
+    PatrolRadius: 20
+    ChaseTimeout: 5
+    EyeColor: {r: 1, g: 0.3, b: 0, a: 1}
+    ChaseLightColor: {r: 1, g: 0, b: 0, a: 1}
+    ConeLightColor: {r: 1, g: 0.6, b: 0.4, a: 1}
+    Prefab: {fileID: 977428913892350345, guid: 3a3c759343334f1469e710d03b0e34b7, type: 3}
+  - Type: 2
+    ScanSpeed: 1.8
+    ChaseSpeed: 3
+    LightConeAngle: 50
+    LightRange: 14
+    PatrolRadius: 10
+    ChaseTimeout: 6
+    EyeColor: {r: 0.4, g: 1, b: 0.4, a: 1}
+    ChaseLightColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+    ConeLightColor: {r: 0.5, g: 1, b: 0.5, a: 1}
+    Prefab: {fileID: 2427248086570566328, guid: 6e432a93a88373c4190215ecc37428e7, type: 3}
+  - Type: 3
+    ScanSpeed: 2
+    ChaseSpeed: 3.5
+    LightConeAngle: 120
+    LightRange: 6
+    PatrolRadius: 12
+    ChaseTimeout: 2
+    EyeColor: {r: 0.3, g: 0.7, b: 1, a: 1}
+    ChaseLightColor: {r: 1, g: 0.5, b: 0, a: 1}
+    ConeLightColor: {r: 0.4, g: 0.7, b: 1, a: 1}
+    Prefab: {fileID: 5675767625637464705, guid: add2d4e0cd232294ba5a81d257dec269, type: 3}
   EscapeMusicSpeedMultiplier: 1.3
   ScorePerLevel: 100
   ScorePerTreasure: 10
@@ -41,6 +86,10 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 5440445645884156170, guid: 63070dfc5e03c2c4281d5e9ca3d12409, type: 3}
   GhostPrefab: {fileID: 6016688276179071124, guid: 26802c1836db7d8458caabffe3376046, type: 3}
   TreasurePrefab: {fileID: 5641673387451325299, guid: 248cced0ee761ad439e1a866e336df32, type: 3}
+  GoldTreasurePrefab: {fileID: 253880951431820603, guid: 305aca610451c664dad8a8e1dbf7156d, type: 3}
+  SilverTreasurePrefab: {fileID: 1985070016459585308, guid: 60989daef0b8c634dbbfde633934c3c7, type: 3}
+  CoinTreasurePrefab: {fileID: 51685227550901643, guid: a59e3711bb1c1be4e9e505e03cc6f24b, type: 3}
+  ArtifactTreasurePrefab: {fileID: 9082098283652080492, guid: 176c595014cfcd74f9a5227da0e114a5, type: 3}
   ExitGatePrefab: {fileID: 8713519837242580883, guid: e8e945a0c4e5e2a46af451f1b6dd1cfb, type: 3}
   WallPrefab: {fileID: 6352528236006872629, guid: 9b28b85a937c33e44bb35636981aac46, type: 3}
   FloorPrefab: {fileID: 7035497450723493866, guid: 0f8a2d50c3092f340b0bb567d2c0c218, type: 3}
@@ -51,4 +100,5 @@ MonoBehaviour:
   SpeedBootsPrefab: {fileID: 8460767422894909911, guid: 3c4ff4da39100194891041c45b070e51, type: 3}
   ShadowCloakPrefab: {fileID: 5933734488732299413, guid: 93260b3d4ff859341b8d0b9e64dfc7d5, type: 3}
   GhostVisionPrefab: {fileID: 1800889479334104305, guid: 8260b6dfb83413a40b37663eafb88cdc, type: 3}
+  ObstaclePrefab: {fileID: 7630397987152940839, guid: 9758a8a90cc04c14cabca754fdc20c3b, type: 3}
   AvailableSkins: []
