@@ -246,7 +246,7 @@ namespace GraveyardHunter.UI
                 foreach (var kvp in evt.TypeStatus)
                 {
                     if (sb.Length > 0) sb.Append("  ");
-                    string check = kvp.Value.collected >= kvp.Value.required ? " <color=green>\u2713</color>" : "";
+                    string check = "";
                     sb.Append($"{kvp.Key}: {kvp.Value.collected}/{kvp.Value.required}{check}");
                 }
                 _treasureText.text = sb.ToString();
