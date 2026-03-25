@@ -24,6 +24,9 @@ namespace GraveyardHunter.Editor
         private bool _createSpeedBoots = true;
         private bool _createShadowCloak = true;
         private bool _createGhostVision = true;
+        private bool _createWerewolf = true;
+        private bool _createMonster = true;
+        private bool _createRobot = true;
 
         [MenuItem("GraveyardHunter/Prefab Creator")]
         public static void ShowWindow()
@@ -51,6 +54,12 @@ namespace GraveyardHunter.Editor
             _createSpeedBoots = EditorGUILayout.Toggle("SpeedBoots", _createSpeedBoots);
             _createShadowCloak = EditorGUILayout.Toggle("ShadowCloak", _createShadowCloak);
             _createGhostVision = EditorGUILayout.Toggle("GhostVision", _createGhostVision);
+
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Enemy Variants:", EditorStyles.boldLabel);
+            _createWerewolf = EditorGUILayout.Toggle("Werewolf", _createWerewolf);
+            _createMonster = EditorGUILayout.Toggle("Monster", _createMonster);
+            _createRobot = EditorGUILayout.Toggle("Robot", _createRobot);
 
             EditorGUILayout.Space(10);
 
@@ -95,6 +104,10 @@ namespace GraveyardHunter.Editor
             if (_createSpeedBoots) CreateBoosterPrefab<Booster.SpeedBootsBooster>("SpeedBoots", "Booster_Speed", Core.BoosterType.SpeedBoots, PrimitiveType.Cube);
             if (_createShadowCloak) CreateBoosterPrefab<Booster.ShadowCloakBooster>("ShadowCloak", "Booster_Shadow", Core.BoosterType.ShadowCloak, PrimitiveType.Capsule);
             if (_createGhostVision) CreateBoosterPrefab<Booster.GhostVisionBooster>("GhostVision", "Booster_Vision", Core.BoosterType.GhostVision, PrimitiveType.Sphere);
+
+            if (_createWerewolf) CreateEnemyVariantPrefab("Werewolf", new Color(1f, 0.3f, 0f), new Color(1f, 0.6f, 0.4f));
+            if (_createMonster) CreateEnemyVariantPrefab("Monster", new Color(0.4f, 1f, 0.4f), new Color(0.5f, 1f, 0.5f));
+            if (_createRobot) CreateEnemyVariantPrefab("Robot", new Color(0.3f, 0.7f, 1f), new Color(0.4f, 0.7f, 1f));
 
             AutoAssignGameConfig();
 
@@ -254,6 +267,87 @@ namespace GraveyardHunter.Editor
 
             SavePrefab(root, path);
             Log("Created Ghost prefab.");
+        }
+
+        // ======================== ENEMY VARIANTS ========================
+
+        private void CreateEnemyVariantPrefab(string enemyName, Color eyeColor, Color coneLightColor)
+        {
+            string path = $"{PrefabsPath}/Characters/{enemyName}.prefab";
+            if (PrefabExists(path)) { Log($"{enemyName} prefab already exists."); return; }
+            EnsureFolder($"{PrefabsPath}/Characters");
+
+            var root = new GameObject(enemyName);
+            var ghostComp = root.AddComponent<Enemy.LightGhost>();
+            var agent = root.AddComponent<NavMeshAgent>();
+            agent.speed = 2.5f;
+            agent.angularSpeed = 180f;
+            agent.radius = 0.4f;
+            agent.height = 1.8f;
+
+            // VisualRoot - use capsule as placeholder, model will be added via BugFixer
+            var visual = CreatePrimitive("VisualRoot", root.transform, PrimitiveType.Capsule, $"{enemyName}_Body");
+            visual.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+
+            var ghostSO = new SerializedObject(ghostComp);
+            AssignRef(ghostSO, "_visualRoot", visual.transform);
+
+            // Eyes with custom color
+            var eyesGO = new GameObject("Eyes");
+            eyesGO.transform.SetParent(root.transform);
+            eyesGO.transform.localPosition = new Vector3(0f, 1.5f, 0.3f);
+            var eyesComp = eyesGO.AddComponent<Enemy.GhostEyes>();
+
+            var leftEye = new GameObject("LeftEye");
+            leftEye.transform.SetParent(eyesGO.transform);
+            leftEye.transform.localPosition = new Vector3(-0.15f, 0f, 0f);
+            var leftLight = leftEye.AddComponent<Light>();
+            leftLight.type = LightType.Point;
+            leftLight.range = 1f;
+            leftLight.intensity = 1f;
+            leftLight.color = eyeColor;
+
+            var rightEye = new GameObject("RightEye");
+            rightEye.transform.SetParent(eyesGO.transform);
+            rightEye.transform.localPosition = new Vector3(0.15f, 0f, 0f);
+            var rightLight = rightEye.AddComponent<Light>();
+            rightLight.type = LightType.Point;
+            rightLight.range = 1f;
+            rightLight.intensity = 1f;
+            rightLight.color = eyeColor;
+
+            var eyesSO = new SerializedObject(eyesComp);
+            AssignRef(eyesSO, "_leftEye", leftLight);
+            AssignRef(eyesSO, "_rightEye", rightLight);
+            eyesSO.ApplyModifiedPropertiesWithoutUndo();
+
+            // LightCone with custom color
+            var lightConeGO = new GameObject("LightCone");
+            lightConeGO.transform.SetParent(root.transform);
+            lightConeGO.transform.localPosition = new Vector3(0f, 1.2f, 0f);
+            var lightConeComp = lightConeGO.AddComponent<Enemy.GhostLightCone>();
+
+            var coneSpotGO = new GameObject("ConeSpotLight");
+            coneSpotGO.transform.SetParent(lightConeGO.transform);
+            coneSpotGO.transform.localPosition = Vector3.zero;
+            var coneSpot = coneSpotGO.AddComponent<Light>();
+            coneSpot.type = LightType.Spot;
+            coneSpot.spotAngle = 80f;
+            coneSpot.range = 10f;
+            coneSpot.intensity = 2f;
+            coneSpot.color = coneLightColor;
+
+            var coneSO = new SerializedObject(lightConeComp);
+            AssignRef(coneSO, "_spotLight", coneSpot);
+            coneSO.ApplyModifiedPropertiesWithoutUndo();
+
+            AssignRef(ghostSO, "_lightCone", lightConeComp);
+            ghostSO.ApplyModifiedPropertiesWithoutUndo();
+
+            CreateFXPoint("FX_Center", root.transform, new Vector3(0f, 0.9f, 0f));
+
+            SavePrefab(root, path);
+            Log($"Created {enemyName} prefab.");
         }
 
         // ======================== TREASURE ========================
@@ -557,8 +651,47 @@ namespace GraveyardHunter.Editor
             TryAssignPrefab(so, "GhostVisionPrefab", $"{PrefabsPath}/Boosters/GhostVision.prefab");
 
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            // Auto-populate EnemyTypes list with defaults + prefab references
+            AutoPopulateEnemyTypes(config);
+
             EditorUtility.SetDirty(config);
             Log("Auto-assigned prefab references in GameConfig.");
+        }
+
+        private void AutoPopulateEnemyTypes(Data.GameConfig config)
+        {
+            var enemyTypes = new System.Collections.Generic.Dictionary<Core.EnemyType, string>
+            {
+                { Core.EnemyType.Ghost, $"{PrefabsPath}/Characters/Ghost.prefab" },
+                { Core.EnemyType.Werewolf, $"{PrefabsPath}/Characters/Werewolf.prefab" },
+                { Core.EnemyType.Monster, $"{PrefabsPath}/Characters/Monster.prefab" },
+                { Core.EnemyType.Robot, $"{PrefabsPath}/Characters/Robot.prefab" }
+            };
+
+            // Ensure list has entries for all types
+            foreach (var kvp in enemyTypes)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(kvp.Value);
+                if (prefab == null) continue;
+
+                // Find existing entry or create new
+                Data.EnemyTypeData existing = null;
+                foreach (var data in config.EnemyTypes)
+                {
+                    if (data.Type == kvp.Key) { existing = data; break; }
+                }
+
+                if (existing == null)
+                {
+                    existing = Data.EnemyTypeData.GetDefault(kvp.Key);
+                    config.EnemyTypes.Add(existing);
+                }
+
+                existing.Prefab = prefab;
+            }
+
+            Log($"Auto-populated {config.EnemyTypes.Count} enemy types in GameConfig.");
         }
 
         private void TryAssignPrefab(SerializedObject so, string fieldName, string prefabPath)

@@ -22,10 +22,13 @@ namespace GraveyardHunter.Enemy
         [SerializeField] private GhostLightCone _lightCone;
 
         private GameConfig _config;
+        private EnemyTypeData _enemyData;
         private Transform _playerTransform;
 
         private float _scanSpeed;
         private float _chaseSpeed;
+        private float _patrolRadius = 15f;
+        private float _chaseTimeout = 3f;
         private bool _isEscapePhase;
         private Vector3 _lastKnownPlayerPos;
         private float _wallCheckTimer;
@@ -51,19 +54,30 @@ namespace GraveyardHunter.Enemy
             EventBus.Unsubscribe<GameStateChangedEvent>(OnGameStateChanged);
         }
 
+        /// <summary>Legacy initialize using global GameConfig ghost settings.</summary>
         public void Initialize(GameConfig config, Transform player, int id)
         {
+            var defaultData = EnemyTypeData.GetDefault(Core.EnemyType.Ghost);
+            Initialize(config, defaultData, player, id);
+        }
+
+        /// <summary>Initialize with specific enemy type data for varied behavior.</summary>
+        public void Initialize(GameConfig config, EnemyTypeData enemyData, Transform player, int id)
+        {
             _config = config;
+            _enemyData = enemyData;
             _playerTransform = player;
             _ghostId = id;
 
-            _scanSpeed = config.GhostScanSpeed;
-            _chaseSpeed = config.GhostChaseSpeed;
+            _scanSpeed = enemyData.ScanSpeed;
+            _chaseSpeed = enemyData.ChaseSpeed;
+            _patrolRadius = enemyData.PatrolRadius;
+            _chaseTimeout = enemyData.ChaseTimeout;
 
             _agent.speed = _scanSpeed;
 
             _lightCone.SetPlayer(player);
-            _lightCone.Initialize(config.GhostLightConeAngle, config.GhostLightRange);
+            _lightCone.Initialize(enemyData.LightConeAngle, enemyData.LightRange);
 
             _isActive = true;
 
@@ -183,7 +197,7 @@ namespace GraveyardHunter.Enemy
                 _agent.SetDestination(_lastKnownPlayerPos);
                 _wallCheckTimer += Time.deltaTime;
 
-                if (CheckWallAhead() || _wallCheckTimer > 3f)
+                if (CheckWallAhead() || _wallCheckTimer > _chaseTimeout)
                 {
                     OnReachWallDuringChase();
                 }
@@ -213,10 +227,10 @@ namespace GraveyardHunter.Enemy
 
         private void PickRandomDestination()
         {
-            Vector3 randomDirection = Random.insideUnitSphere * 15f;
+            Vector3 randomDirection = Random.insideUnitSphere * _patrolRadius;
             randomDirection += transform.position;
 
-            if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, 15f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, _patrolRadius, NavMesh.AllAreas))
             {
                 _agent.SetDestination(hit.position);
             }

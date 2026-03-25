@@ -17,6 +17,14 @@ namespace GraveyardHunter.Core
         Chase
     }
 
+    public enum EnemyType
+    {
+        Ghost,
+        Werewolf,
+        Monster,
+        Robot
+    }
+
     public enum TrapType
     {
         Spike,

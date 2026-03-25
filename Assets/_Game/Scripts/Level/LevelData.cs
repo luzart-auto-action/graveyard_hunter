@@ -35,6 +35,20 @@ namespace GraveyardHunter.Level
         [BoxGroup("Enemies")]
         public int GhostCount = 1;
 
+        [BoxGroup("Enemies"), Tooltip("Which enemy types can spawn in this level. Empty = Ghost only.")]
+        public List<Core.EnemyType> AllowedEnemyTypes = new();
+
+        /// <summary>
+        /// Returns a random allowed enemy type for this level.
+        /// Falls back to Ghost if no types are configured.
+        /// </summary>
+        public Core.EnemyType GetRandomEnemyType()
+        {
+            if (AllowedEnemyTypes == null || AllowedEnemyTypes.Count == 0)
+                return Core.EnemyType.Ghost;
+            return AllowedEnemyTypes[UnityEngine.Random.Range(0, AllowedEnemyTypes.Count)];
+        }
+
         [BoxGroup("Placements"), TableList]
         public List<ObjectPlacement> Placements = new();
 

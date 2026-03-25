@@ -229,7 +229,7 @@ namespace GraveyardHunter.Level
                         break;
 
                     case CellType.EnemySpawn:
-                        SpawnGhost(worldPos, ghostId++);
+                        SpawnEnemy(worldPos, ghostId++, _currentLevelData.GetRandomEnemyType());
                         break;
 
                     case CellType.Treasure:
@@ -264,7 +264,8 @@ namespace GraveyardHunter.Level
                     Vector2Int cell = emptyCells[randomIndex];
                     emptyCells.RemoveAt(randomIndex);
 
-                    SpawnGhost(GridToWorld(cell.x, cell.y), ghostId++);
+                    var enemyType = _currentLevelData.GetRandomEnemyType();
+                    SpawnEnemy(GridToWorld(cell.x, cell.y), ghostId++, enemyType);
                 }
             }
         }
@@ -290,10 +291,9 @@ namespace GraveyardHunter.Level
                 lightSystem.Initialize(_gameConfig);
         }
 
-        private void SpawnGhost(Vector3 position, int id)
+        private void SpawnEnemy(Vector3 position, int id, Core.EnemyType enemyType)
         {
             // Find nearest valid WALKABLE NavMesh position so the agent can be placed
-            // Use area mask 1 (bit 0 = Walkable area only), not AllAreas which includes Not Walkable
             int walkableAreaMask = 1 << 0; // Area 0 = Walkable
             if (NavMesh.SamplePosition(position, out NavMeshHit hit, 5f, walkableAreaMask))
             {
@@ -301,16 +301,27 @@ namespace GraveyardHunter.Level
             }
             else
             {
-                Debug.LogWarning($"[LevelManager] No NavMesh near ghost spawn {position}, skipping ghost {id}");
+                Debug.LogWarning($"[LevelManager] No NavMesh near enemy spawn {position}, skipping {enemyType} {id}");
                 return;
             }
 
-            var ghostObj = Instantiate(_gameConfig.GhostPrefab, position, Quaternion.identity, _levelRoot);
-            _spawnedObjects.Add(ghostObj);
+            var enemyData = _gameConfig.GetEnemyData(enemyType);
+            var prefab = _gameConfig.GetEnemyPrefab(enemyType);
 
-            var ghost = ghostObj.GetComponent<LightGhost>();
-            ghost.Initialize(_gameConfig, _playerInstance.transform, id);
+            var enemyObj = Instantiate(prefab, position, Quaternion.identity, _levelRoot);
+            _spawnedObjects.Add(enemyObj);
+
+            var ghost = enemyObj.GetComponent<LightGhost>();
+            ghost.Initialize(_gameConfig, enemyData, _playerInstance.transform, id);
             _ghostInstances.Add(ghost);
+
+            Debug.Log($"[LevelManager] Spawned {enemyType} (id={id}) at {position}");
+        }
+
+        /// <summary>Legacy method - spawns default Ghost type.</summary>
+        private void SpawnGhost(Vector3 position, int id)
+        {
+            SpawnEnemy(position, id, Core.EnemyType.Ghost);
         }
 
         private void SpawnTrap(TrapType trapType, Vector3 position)

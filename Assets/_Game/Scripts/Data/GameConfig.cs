@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GraveyardHunter.Core;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -34,20 +35,38 @@ namespace GraveyardHunter.Data
         [BoxGroup("Player"), Tooltip("2s after leaving light")]
         public float SlowRecoveryDelay = 2f;
 
-        [BoxGroup("Ghost")]
+        [BoxGroup("Ghost (Legacy - use EnemyTypes instead)")]
         public float GhostScanSpeed = 2.5f;
 
-        [BoxGroup("Ghost")]
+        [BoxGroup("Ghost (Legacy - use EnemyTypes instead)")]
         public float GhostChaseSpeed = 4f;
 
-        [BoxGroup("Ghost"), Tooltip("70-90 degrees")]
+        [BoxGroup("Ghost (Legacy - use EnemyTypes instead)"), Tooltip("70-90 degrees")]
         public float GhostLightConeAngle = 80f;
 
-        [BoxGroup("Ghost")]
+        [BoxGroup("Ghost (Legacy - use EnemyTypes instead)")]
         public float GhostLightRange = 10f;
 
-        [BoxGroup("Ghost"), Tooltip("20% boost in escape phase")]
+        [BoxGroup("Ghost (Legacy - use EnemyTypes instead)"), Tooltip("20% boost in escape phase")]
         public float GhostEscapeSpeedBoost = 1.2f;
+
+        [BoxGroup("Enemy Types"), TableList]
+        public List<EnemyTypeData> EnemyTypes = new();
+
+        public EnemyTypeData GetEnemyData(EnemyType type)
+        {
+            foreach (var data in EnemyTypes)
+            {
+                if (data.Type == type) return data;
+            }
+            return EnemyTypeData.GetDefault(type);
+        }
+
+        public GameObject GetEnemyPrefab(EnemyType type)
+        {
+            var data = GetEnemyData(type);
+            return data?.Prefab != null ? data.Prefab : GhostPrefab;
+        }
 
         [BoxGroup("Gameplay")]
         public float EscapeMusicSpeedMultiplier = 1.3f;

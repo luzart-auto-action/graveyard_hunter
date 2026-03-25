@@ -22,15 +22,16 @@ namespace GraveyardHunter.Editor
             EditorGUILayout.Space(5);
             EditorGUILayout.HelpBox(
                 "Fixes:\n" +
-                "Fixes:\n" +
                 "1. Floor prefab: adds BoxCollider (required for NavMesh baking)\n" +
                 "2. Wall prefab: removes NavMeshObstacle\n" +
-                "3. Ghost prefab: fixes NavMeshAgent walkable mask\n" +
+                "3. All enemy prefabs (Ghost/Werewolf/Monster/Robot): fixes NavMeshAgent walkable mask\n" +
                 "4. Treasure prefab: adds TreasurePickup script\n" +
                 "5. ExitGate prefab: adds ExitGate script\n" +
                 "6. Player animation: creates AnimatorController + assigns to model\n" +
-                "7. Ghost animation: creates AnimatorController + assigns to model\n" +
-                "8. Joystick: wires FloatingJoystick from Joystick Pack to InputManager",
+                "7. All enemy animations: creates AnimatorController + assigns to models\n" +
+                "8. Joystick: wires FloatingJoystick from Joystick Pack to InputManager\n" +
+                "9. Auto-populates EnemyTypes in GameConfig with prefab refs\n" +
+                "10. Auto-sets AllowedEnemyTypes in LevelData assets",
                 MessageType.Info);
             EditorGUILayout.Space(10);
 
@@ -39,12 +40,14 @@ namespace GraveyardHunter.Editor
                 _log.Clear();
                 FixFloorPrefab();
                 FixWallPrefab();
-                FixGhostPrefab();
+                FixAllEnemyPrefabs();
                 FixTreasurePrefab();
                 FixExitGatePrefab();
                 FixPlayerAnimation();
-                FixGhostAnimation();
+                FixAllEnemyAnimations();
                 FixJoystickSetup();
+                FixEnemyTypesInGameConfig();
+                FixLevelDataEnemyTypes();
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
                 Log("--- All fixes applied! ---");
@@ -97,40 +100,48 @@ namespace GraveyardHunter.Editor
             PrefabUtility.UnloadPrefabContents(root);
         }
 
-        private void FixGhostPrefab()
-        {
-            string path = "Assets/_Game/Prefabs/Characters/Ghost.prefab";
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab == null)
-            {
-                Log("Ghost prefab not found at: " + path);
-                return;
-            }
+        private static readonly string[] EnemyPrefabPaths = {
+            "Assets/_Game/Prefabs/Characters/Ghost.prefab",
+            "Assets/_Game/Prefabs/Characters/Werewolf.prefab",
+            "Assets/_Game/Prefabs/Characters/Monster.prefab",
+            "Assets/_Game/Prefabs/Characters/Robot.prefab"
+        };
 
+        private void FixAllEnemyPrefabs()
+        {
+            foreach (var path in EnemyPrefabPaths)
+            {
+                FixEnemyPrefabNavMesh(path);
+            }
+        }
+
+        private void FixEnemyPrefabNavMesh(string path)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) return; // Prefab not yet created, skip silently
+
+            string name = System.IO.Path.GetFileNameWithoutExtension(path);
             var root = PrefabUtility.LoadPrefabContents(path);
 
             var agent = root.GetComponent<NavMeshAgent>();
             if (agent != null)
             {
-                // Set walkable mask to only Walkable area (bit 0), exclude Not Walkable (bit 1)
-                // Area 0 = Walkable = bitmask 1, Area 1 = Not Walkable = bitmask 2
-                // We want all EXCEPT Not Walkable: ~(1 << 1) = 0xFFFFFFFD
-                int notWalkableBit = 1 << 1; // area 1
+                int notWalkableBit = 1 << 1;
                 int newMask = ~notWalkableBit;
                 if (agent.areaMask != newMask)
                 {
                     agent.areaMask = newMask;
                     PrefabUtility.SaveAsPrefabAsset(root, path);
-                    Log("Fixed Ghost prefab: NavMeshAgent areaMask excludes Not Walkable area.");
+                    Log($"Fixed {name} prefab: NavMeshAgent areaMask excludes Not Walkable area.");
                 }
                 else
                 {
-                    Log("Ghost prefab OK: areaMask already correct.");
+                    Log($"{name} prefab OK: areaMask already correct.");
                 }
             }
             else
             {
-                Log("Ghost prefab: no NavMeshAgent found!");
+                Log($"{name} prefab: no NavMeshAgent found!");
             }
 
             PrefabUtility.UnloadPrefabContents(root);
@@ -358,11 +369,11 @@ namespace GraveyardHunter.Editor
             AssignAnimatorToModel("Assets/_Game/Prefabs/Characters/Player.prefab", controller, "Player");
         }
 
-        // ======================== GHOST ANIMATION ========================
+        // ======================== ENEMY ANIMATIONS (ALL TYPES) ========================
 
-        private void FixGhostAnimation()
+        private void FixAllEnemyAnimations()
         {
-            string controllerPath = "Assets/_Game/Animations/GhostAnimator.controller";
+            string controllerPath = "Assets/_Game/Animations/EnemyAnimator.controller";
             EnsureFolder("Assets/_Game/Animations");
 
             var idleClip = AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/characters_5_02/Animations/Idle.anim");
@@ -371,12 +382,17 @@ namespace GraveyardHunter.Editor
 
             if (idleClip == null || walkClip == null || runClip == null)
             {
-                Log("Ghost animation clips not found! Need Idle/Walk/Run.anim in characters_5_02/Animations/");
+                Log("Enemy animation clips not found! Need Idle/Walk/Run.anim in characters_5_02/Animations/");
                 return;
             }
 
+            // Delete old controllers
             if (AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath) != null)
                 AssetDatabase.DeleteAsset(controllerPath);
+            // Also clean up legacy GhostAnimator
+            string legacyPath = "Assets/_Game/Animations/GhostAnimator.controller";
+            if (AssetDatabase.LoadAssetAtPath<AnimatorController>(legacyPath) != null)
+                AssetDatabase.DeleteAsset(legacyPath);
 
             var controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
 
@@ -436,9 +452,17 @@ namespace GraveyardHunter.Editor
             runToIdle.duration = 0.15f;
 
             AssetDatabase.SaveAssets();
-            Log("Created GhostAnimator.controller (Idle/Walk/Run with Speed/IsChasing params).");
+            Log("Created EnemyAnimator.controller (Idle/Walk/Run with Speed/IsChasing params).");
 
-            AssignAnimatorToModel("Assets/_Game/Prefabs/Characters/Ghost.prefab", controller, "Ghost");
+            // Assign to ALL enemy prefabs
+            foreach (var path in EnemyPrefabPaths)
+            {
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null)
+                {
+                    AssignAnimatorToModel(path, controller, name);
+                }
+            }
         }
 
         // ======================== HELPER: Assign Animator ========================
@@ -540,6 +564,100 @@ namespace GraveyardHunter.Editor
                 Log($"  -> Also assigned {controller.name} to source model: {path}");
                 return;
             }
+        }
+
+        // ======================== ENEMY TYPES IN GAMECONFIG ========================
+
+        private void FixEnemyTypesInGameConfig()
+        {
+            string configPath = "Assets/_Game/ScriptableObjects/Configs/GameConfig.asset";
+            var config = AssetDatabase.LoadAssetAtPath<Data.GameConfig>(configPath);
+            if (config == null)
+            {
+                Log("GameConfig not found, skipping EnemyTypes setup.");
+                return;
+            }
+
+            var types = new (Core.EnemyType type, string path)[]
+            {
+                (Core.EnemyType.Ghost, "Assets/_Game/Prefabs/Characters/Ghost.prefab"),
+                (Core.EnemyType.Werewolf, "Assets/_Game/Prefabs/Characters/Werewolf.prefab"),
+                (Core.EnemyType.Monster, "Assets/_Game/Prefabs/Characters/Monster.prefab"),
+                (Core.EnemyType.Robot, "Assets/_Game/Prefabs/Characters/Robot.prefab")
+            };
+
+            foreach (var (type, path) in types)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+
+                // Check if already exists
+                bool found = false;
+                foreach (var data in config.EnemyTypes)
+                {
+                    if (data.Type == type)
+                    {
+                        data.Prefab = prefab;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    var newData = Data.EnemyTypeData.GetDefault(type);
+                    newData.Prefab = prefab;
+                    config.EnemyTypes.Add(newData);
+                    Log($"  -> Added {type} to EnemyTypes with default stats.");
+                }
+            }
+
+            EditorUtility.SetDirty(config);
+            Log($"Fixed GameConfig: {config.EnemyTypes.Count} enemy types configured.");
+        }
+
+        // ======================== LEVEL DATA ENEMY TYPES ========================
+
+        private void FixLevelDataEnemyTypes()
+        {
+            // Find all LevelData assets
+            string[] guids = AssetDatabase.FindAssets("t:LevelData", new[] { "Assets/_Game" });
+            if (guids.Length == 0)
+            {
+                Log("No LevelData assets found.");
+                return;
+            }
+
+            // Progressive enemy type unlocking per level
+            var allTypes = new Core.EnemyType[] {
+                Core.EnemyType.Ghost,
+                Core.EnemyType.Werewolf,
+                Core.EnemyType.Monster,
+                Core.EnemyType.Robot
+            };
+
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var levelData = AssetDatabase.LoadAssetAtPath<Level.LevelData>(path);
+                if (levelData == null) continue;
+
+                // Skip if already configured
+                if (levelData.AllowedEnemyTypes != null && levelData.AllowedEnemyTypes.Count > 0) continue;
+
+                // Progressive unlock: level 0 = Ghost only, level 1 = Ghost+Werewolf, etc.
+                int typesToUnlock = Mathf.Clamp(levelData.LevelIndex + 1, 1, allTypes.Length);
+                levelData.AllowedEnemyTypes = new System.Collections.Generic.List<Core.EnemyType>();
+                for (int i = 0; i < typesToUnlock; i++)
+                {
+                    levelData.AllowedEnemyTypes.Add(allTypes[i]);
+                }
+
+                EditorUtility.SetDirty(levelData);
+                Log($"  -> Level {levelData.LevelIndex} ({levelData.LevelName}): {typesToUnlock} enemy types.");
+            }
+
+            Log("Fixed LevelData: progressive enemy type unlocking.");
         }
 
         // ======================== JOYSTICK SETUP ========================
