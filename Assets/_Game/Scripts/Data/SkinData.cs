@@ -13,5 +13,7 @@ namespace GraveyardHunter.Data
 
         [PreviewField]
         public Sprite Icon;
+
+        public GameObject ModelPrefab;
     }
 }

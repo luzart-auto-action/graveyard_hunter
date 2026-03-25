@@ -379,6 +379,19 @@ namespace GraveyardHunter.Editor
                 }
             }
 
+            // _skinItemPrefab
+            var prefabProp = so.FindProperty("_skinItemPrefab");
+            if (prefabProp != null && prefabProp.objectReferenceValue == null)
+            {
+                var skinItemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Game/Prefabs/UI/SkinItem.prefab");
+                if (skinItemPrefab != null)
+                {
+                    prefabProp.objectReferenceValue = skinItemPrefab;
+                    _fixedCount++;
+                    Log("FIXED: ShopPanel._skinItemPrefab");
+                }
+            }
+
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
