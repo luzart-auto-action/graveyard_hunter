@@ -24,6 +24,9 @@ namespace GraveyardHunter.UI
         private static readonly Color ColorOn = new Color(0.2f, 0.75f, 0.3f, 1f);
         private static readonly Color ColorOff = new Color(0.45f, 0.4f, 0.4f, 1f);
 
+        [SerializeField] Sprite btnOnSprite;
+        [SerializeField] Sprite btnOffSprite;
+
         protected override void Init()
         {
             base.Init();
@@ -76,12 +79,12 @@ namespace GraveyardHunter.UI
         private void RefreshVisuals()
         {
             if (_musicToggleBG != null)
-                _musicToggleBG.color = _musicOn ? ColorOn : ColorOff;
+                _musicToggleBG.sprite = _musicOn ? btnOnSprite : btnOffSprite;
             if (_musicToggleText != null)
                 _musicToggleText.text = _musicOn ? "ON" : "OFF";
 
             if (_sfxToggleBG != null)
-                _sfxToggleBG.color = _sfxOn ? ColorOn : ColorOff;
+                _sfxToggleBG.sprite = _sfxOn ?  btnOnSprite : btnOffSprite;
             if (_sfxToggleText != null)
                 _sfxToggleText.text = _sfxOn ? "ON" : "OFF";
         }

@@ -6,23 +6,24 @@ using DG.Tweening;
 namespace GraveyardHunter.UI
 {
     /// <summary>
-    /// Level node on the main menu map.
-    /// 3 states: Locked / Unlocked / Current.
-    /// Drag sprites into Inspector for each state.
+    /// Individual level node on the main menu level map.
+    /// Uses sprite swap for BG states — drag your images into Inspector.
     /// </summary>
     public class LevelNodeUI : MonoBehaviour
     {
         [SerializeField] private int _levelIndex;
         [SerializeField] private Button _button;
         [SerializeField] private Image _bgImage;
+        [SerializeField] private Image _ringImage;
         [SerializeField] private TextMeshProUGUI _levelNumberText;
         [SerializeField] private Image[] _starImages;
         [SerializeField] private GameObject _lockIcon;
 
-        [Header("BG Sprites")]
+        [Header("BG Sprites (drag your images here)")]
         [SerializeField] private Sprite _spriteCurrent;
         [SerializeField] private Sprite _spriteUnlocked;
         [SerializeField] private Sprite _spriteLocked;
+        [SerializeField] private Sprite _spriteSelected;
 
         [Header("Star Sprites")]
         [SerializeField] private Sprite _starOnSprite;
@@ -30,10 +31,14 @@ namespace GraveyardHunter.UI
 
         public int LevelIndex => _levelIndex;
 
-        public void SetLevelIndex(int index) => _levelIndex = index;
+        public void SetLevelIndex(int index)
+        {
+            _levelIndex = index;
+        }
 
         private System.Action<int> _clickCallback;
         private bool _unlocked;
+        private bool _isCurrent;
 
         private void Awake()
         {
@@ -44,6 +49,7 @@ namespace GraveyardHunter.UI
         public void SetState(bool unlocked, bool isCurrent, int stars)
         {
             _unlocked = unlocked;
+            _isCurrent = isCurrent;
 
             // Level number
             if (_levelNumberText != null)
@@ -56,7 +62,7 @@ namespace GraveyardHunter.UI
             if (_lockIcon != null)
                 _lockIcon.SetActive(!unlocked);
 
-            // BG sprite
+            // BG: swap sprite, fallback to color if sprite is null
             if (_bgImage != null)
             {
                 if (isCurrent && _spriteCurrent != null)
@@ -66,10 +72,15 @@ namespace GraveyardHunter.UI
                 else if (!unlocked && _spriteLocked != null)
                     _bgImage.sprite = _spriteLocked;
 
+                // Keep white tint so sprite shows original colors
                 _bgImage.color = Color.white;
             }
 
-            // Stars
+            // Ring
+            if (_ringImage != null)
+                _ringImage.color = isCurrent ? new Color(1f, 0.85f, 0.3f) : Color.white;
+
+            // Stars: swap sprite if available, fallback to color
             if (_starImages != null)
             {
                 for (int i = 0; i < _starImages.Length; i++)
@@ -104,6 +115,27 @@ namespace GraveyardHunter.UI
                 transform.DOKill();
                 transform.localScale = Vector3.one;
             }
+        }
+
+        public void SetSelected(bool selected)
+        {
+            if (_bgImage == null) return;
+
+            if (selected && _unlocked)
+            {
+                if (_spriteSelected != null)
+                    _bgImage.sprite = _spriteSelected;
+            }
+            else
+            {
+                // Restore to current/unlocked sprite
+                if (_isCurrent && _spriteCurrent != null)
+                    _bgImage.sprite = _spriteCurrent;
+                else if (_unlocked && _spriteUnlocked != null)
+                    _bgImage.sprite = _spriteUnlocked;
+            }
+
+            _bgImage.color = Color.white;
         }
 
         public void SetClickCallback(System.Action<int> callback)
