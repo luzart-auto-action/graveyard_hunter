@@ -89,6 +89,14 @@ namespace GraveyardHunter.Editor
             Debug.Log($"[PrefabCreator] {msg}");
         }
 
+        /// <summary>Public static entry point for SetupAll to call.</summary>
+        public static void CreateAllPrefabsStatic()
+        {
+            var instance = CreateInstance<PrefabCreator>();
+            instance.CreateAllPrefabs();
+            DestroyImmediate(instance);
+        }
+
         private void CreateAllPrefabs()
         {
             MaterialFactory.CreateAllMaterials();

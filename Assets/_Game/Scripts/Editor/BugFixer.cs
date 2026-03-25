@@ -43,22 +43,7 @@ namespace GraveyardHunter.Editor
             if (GUILayout.Button("Fix All Bugs", GUILayout.Height(40)))
             {
                 _log.Clear();
-                FixFloorPrefab();
-                FixWallPrefab();
-                FixAllEnemyPrefabs();
-                FixTreasurePrefab();
-                FixExitGatePrefab();
-                FixPlayerAnimation();
-                FixAllEnemyAnimations();
-                FixJoystickSetup();
-                FixEnemyTypesInGameConfig();
-                FixLevelDataEnemyTypes();
-                FixObstaclePrefab();
-                FixLevelManagerLevelsList();
-                CreateTutorialUI();
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-                Log("--- All fixes applied! ---");
+                RunAllFixes();
             }
 
             EditorGUILayout.Space(10);
@@ -71,6 +56,34 @@ namespace GraveyardHunter.Editor
                     EditorGUILayout.LabelField(entry, EditorStyles.wordWrappedLabel);
                 EditorGUILayout.EndScrollView();
             }
+        }
+
+        /// <summary>Public static entry point for SetupAll to call.</summary>
+        public static void FixAllBugsStatic()
+        {
+            var instance = CreateInstance<BugFixer>();
+            instance.RunAllFixes();
+            DestroyImmediate(instance);
+        }
+
+        private void RunAllFixes()
+        {
+            FixFloorPrefab();
+            FixWallPrefab();
+            FixAllEnemyPrefabs();
+            FixTreasurePrefab();
+            FixExitGatePrefab();
+            FixPlayerAnimation();
+            FixAllEnemyAnimations();
+            FixJoystickSetup();
+            FixEnemyTypesInGameConfig();
+            FixLevelDataEnemyTypes();
+            FixObstaclePrefab();
+            FixLevelManagerLevelsList();
+            CreateTutorialUI();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Log("--- All fixes applied! ---");
         }
 
         private void Log(string msg)
