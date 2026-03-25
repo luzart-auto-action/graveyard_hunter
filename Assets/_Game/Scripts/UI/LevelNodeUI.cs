@@ -7,7 +7,7 @@ namespace GraveyardHunter.UI
 {
     /// <summary>
     /// Individual level node on the main menu level map.
-    /// Shows level number, lock state, stars, and current/selected highlight.
+    /// Uses sprite swap for BG states — drag your images into Inspector.
     /// </summary>
     public class LevelNodeUI : MonoBehaviour
     {
@@ -19,9 +19,18 @@ namespace GraveyardHunter.UI
         [SerializeField] private Image[] _starImages;
         [SerializeField] private GameObject _lockIcon;
 
+        [Header("BG Sprites (drag your images here)")]
+        [SerializeField] private Sprite _spriteCurrent;
+        [SerializeField] private Sprite _spriteUnlocked;
+        [SerializeField] private Sprite _spriteLocked;
+        [SerializeField] private Sprite _spriteSelected;
+
+        [Header("Star Sprites")]
+        [SerializeField] private Sprite _starOnSprite;
+        [SerializeField] private Sprite _starOffSprite;
+
         public int LevelIndex => _levelIndex;
 
-        /// <summary>Set at runtime when spawned from prefab.</summary>
         public void SetLevelIndex(int index)
         {
             _levelIndex = index;
@@ -29,15 +38,7 @@ namespace GraveyardHunter.UI
 
         private System.Action<int> _clickCallback;
         private bool _unlocked;
-
-        private static readonly Color ColorCurrent = new Color(0.2f, 0.78f, 0.35f, 1f);   // green
-        private static readonly Color ColorUnlocked = new Color(0.3f, 0.55f, 0.85f, 1f);   // blue
-        private static readonly Color ColorLocked = new Color(0.4f, 0.4f, 0.45f, 1f);      // gray
-        private static readonly Color ColorSelected = new Color(0.95f, 0.75f, 0.15f, 1f);   // gold
-        private static readonly Color RingWhite = new Color(1f, 1f, 1f, 0.8f);
-        private static readonly Color RingGold = new Color(1f, 0.85f, 0.3f, 1f);
-        private static readonly Color StarOn = new Color(1f, 0.84f, 0f, 1f);
-        private static readonly Color StarOff = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+        private bool _isCurrent;
 
         private void Awake()
         {
@@ -48,8 +49,9 @@ namespace GraveyardHunter.UI
         public void SetState(bool unlocked, bool isCurrent, int stars)
         {
             _unlocked = unlocked;
+            _isCurrent = isCurrent;
 
-            // Number text
+            // Level number
             if (_levelNumberText != null)
             {
                 _levelNumberText.text = (_levelIndex + 1).ToString();
@@ -60,35 +62,44 @@ namespace GraveyardHunter.UI
             if (_lockIcon != null)
                 _lockIcon.SetActive(!unlocked);
 
-            // Background color
+            // BG: swap sprite, fallback to color if sprite is null
             if (_bgImage != null)
             {
-                if (isCurrent)
-                    _bgImage.color = ColorCurrent;
-                else if (unlocked)
-                    _bgImage.color = ColorUnlocked;
-                else
-                    _bgImage.color = ColorLocked;
+                if (isCurrent && _spriteCurrent != null)
+                    _bgImage.sprite = _spriteCurrent;
+                else if (unlocked && _spriteUnlocked != null)
+                    _bgImage.sprite = _spriteUnlocked;
+                else if (!unlocked && _spriteLocked != null)
+                    _bgImage.sprite = _spriteLocked;
+
+                // Keep white tint so sprite shows original colors
+                _bgImage.color = Color.white;
             }
 
             // Ring
             if (_ringImage != null)
-                _ringImage.color = isCurrent ? RingGold : RingWhite;
+                _ringImage.color = isCurrent ? new Color(1f, 0.85f, 0.3f) : Color.white;
 
-            // Stars
+            // Stars: swap sprite if available, fallback to color
             if (_starImages != null)
             {
                 for (int i = 0; i < _starImages.Length; i++)
                 {
-                    if (_starImages[i] != null)
-                    {
-                        _starImages[i].color = (unlocked && i < stars) ? StarOn : StarOff;
-                        _starImages[i].gameObject.SetActive(unlocked);
-                    }
+                    if (_starImages[i] == null) continue;
+
+                    bool earned = unlocked && i < stars;
+
+                    if (earned && _starOnSprite != null)
+                        _starImages[i].sprite = _starOnSprite;
+                    else if (!earned && _starOffSprite != null)
+                        _starImages[i].sprite = _starOffSprite;
+
+                    _starImages[i].color = earned ? Color.white : new Color(1f, 1f, 1f, 0.4f);
+                    _starImages[i].gameObject.SetActive(unlocked);
                 }
             }
 
-            // Button interactable
+            // Button
             if (_button != null)
                 _button.interactable = unlocked;
 
@@ -96,7 +107,8 @@ namespace GraveyardHunter.UI
             if (isCurrent)
             {
                 transform.DOKill();
-                transform.DOScale(1.15f, 0.6f).SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetUpdate(true);
+                transform.DOScale(1.15f, 0.6f).SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo).SetUpdate(true);
             }
             else
             {
@@ -107,11 +119,23 @@ namespace GraveyardHunter.UI
 
         public void SetSelected(bool selected)
         {
-            if (_ringImage != null)
-                _ringImage.color = selected ? RingGold : RingWhite;
+            if (_bgImage == null) return;
 
-            if (selected && _bgImage != null && _unlocked)
-                _bgImage.color = ColorSelected;
+            if (selected && _unlocked)
+            {
+                if (_spriteSelected != null)
+                    _bgImage.sprite = _spriteSelected;
+            }
+            else
+            {
+                // Restore to current/unlocked sprite
+                if (_isCurrent && _spriteCurrent != null)
+                    _bgImage.sprite = _spriteCurrent;
+                else if (_unlocked && _spriteUnlocked != null)
+                    _bgImage.sprite = _spriteUnlocked;
+            }
+
+            _bgImage.color = Color.white;
         }
 
         public void SetClickCallback(System.Action<int> callback)
