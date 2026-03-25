@@ -1,24 +1,140 @@
-using System.Collections;
 using DG.Tweening;
 using GraveyardHunter.Core;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace GraveyardHunter.FX
 {
-    /// <summary>
-    /// Attach to the Player. Listens for booster events and spawns
-    /// particle-system effects that follow the player while active.
-    /// All particles are created via code – no prefabs needed.
-    /// </summary>
     public class BoosterVFX : MonoBehaviour
     {
         [Header("Attach Points")]
-        [SerializeField] private Transform _fxCenter;  // center of player
-        [SerializeField] private Transform _fxBottom;  // feet
-        [SerializeField] private Transform _fxTop;     // head
+        [SerializeField] private Transform _fxCenter;
+        [SerializeField] private Transform _fxBottom;
+        [SerializeField] private Transform _fxTop;
+
+        [FoldoutGroup("Smoke Bomb")]
+        [SerializeField] private SmokeBombVFXConfig _smoke = new();
+
+        [FoldoutGroup("Speed Boots")]
+        [SerializeField] private SpeedBootsVFXConfig _speed = new();
+
+        [FoldoutGroup("Shadow Cloak")]
+        [SerializeField] private ShadowCloakVFXConfig _shadow = new();
+
+        [FoldoutGroup("Ghost Vision")]
+        [SerializeField] private GhostVisionVFXConfig _ghost = new();
 
         private GameObject _activeVFX;
-        private Coroutine _activeRoutine;
+
+        // ===================== CONFIG STRUCTS =====================
+
+        [System.Serializable]
+        public class SmokeBombVFXConfig
+        {
+            [Title("Burst Ring")]
+            public int BurstCount = 30;
+            public float BurstSpeed = 3f;
+            public float BurstLifetime = 1.5f;
+            public Vector2 BurstSizeRange = new(0.8f, 1.5f);
+            public float BurstRadius = 0.5f;
+            public Color BurstColor = new(0.6f, 0.6f, 0.6f, 0.7f);
+            public float BurstGravity = -0.1f;
+
+            [Title("Fog")]
+            public float FogEmissionRate = 15f;
+            public Vector2 FogLifetimeRange = new(1f, 2f);
+            public Vector2 FogSpeedRange = new(0.1f, 0.5f);
+            public Vector2 FogSizeRange = new(0.5f, 1.2f);
+            public float FogRadius = 1.5f;
+            public Color FogColor = new(0.5f, 0.5f, 0.55f, 0.4f);
+            public float FogGravity = -0.05f;
+        }
+
+        [System.Serializable]
+        public class SpeedBootsVFXConfig
+        {
+            [Title("Speed Trail")]
+            public float TrailEmissionRate = 30f;
+            public Vector2 TrailLifetimeRange = new(0.3f, 0.6f);
+            public Vector2 TrailSpeedRange = new(0.5f, 1.5f);
+            public Vector2 TrailSizeRange = new(0.1f, 0.3f);
+            public float TrailConeAngle = 25f;
+            public float TrailConeRadius = 0.2f;
+            public Color TrailColorStart = new(1f, 0.8f, 0.3f, 0.9f);
+            public Color TrailColorEnd = new(1f, 0.4f, 0.1f, 0f);
+
+            [Title("Activate Burst")]
+            public int BurstCount = 20;
+            public Vector2 BurstSpeedRange = new(2f, 4f);
+            public Vector2 BurstSizeRange = new(0.15f, 0.3f);
+            public Color BurstColor = new(1f, 0.9f, 0.4f, 1f);
+
+            [Title("Wind Lines")]
+            public float WindEmissionRate = 20f;
+            public float WindLifetime = 0.4f;
+            public Vector2 WindSpeedRange = new(3f, 5f);
+            public Vector2 WindSizeRange = new(0.02f, 0.05f);
+            public float WindCircleRadius = 0.8f;
+            public float WindStretchLength = 4f;
+            public Color WindColor = new(1f, 1f, 1f, 0.4f);
+        }
+
+        [System.Serializable]
+        public class ShadowCloakVFXConfig
+        {
+            [Title("Dark Aura")]
+            public float AuraEmissionRate = 20f;
+            public Vector2 AuraLifetimeRange = new(0.8f, 1.5f);
+            public Vector2 AuraSpeedRange = new(0.1f, 0.3f);
+            public Vector2 AuraSizeRange = new(0.6f, 1.2f);
+            public float AuraRadius = 0.6f;
+            public Color AuraColor = new(0.1f, 0f, 0.15f, 0.5f);
+            public float AuraGravity = -0.2f;
+
+            [Title("Shadow Wisps")]
+            public float WispsEmissionRate = 12f;
+            public Vector2 WispsLifetimeRange = new(1f, 2f);
+            public Vector2 WispsSpeedRange = new(0.5f, 1.2f);
+            public Vector2 WispsSizeRange = new(0.1f, 0.25f);
+            public float WispsRadius = 0.5f;
+            public Color WispsColor = new(0.2f, 0.05f, 0.3f, 0.7f);
+            public float WispsGravity = -0.5f;
+
+            [Title("Activate Burst")]
+            public int BurstCount = 25;
+            public Vector2 BurstSpeedRange = new(1f, 3f);
+            public Vector2 BurstSizeRange = new(0.2f, 0.5f);
+            public Color BurstColor = new(0.3f, 0f, 0.5f, 0.8f);
+        }
+
+        [System.Serializable]
+        public class GhostVisionVFXConfig
+        {
+            [Title("Eye Glow")]
+            public float GlowEmissionRate = 8f;
+            public Vector2 GlowLifetimeRange = new(0.5f, 1f);
+            public Vector2 GlowSizeRange = new(0.3f, 0.5f);
+            public float GlowRadius = 0.15f;
+            public Color GlowColorStart = new(0.3f, 0.9f, 1f, 0.7f);
+            public Color GlowColorEnd = new(0.1f, 0.5f, 0.8f, 0f);
+
+            [Title("Scan Pulse")]
+            public int PulseBurstCount = 40;
+            public float PulseInterval = 1.5f;
+            public float PulseSpeed = 3f;
+            public float PulseLifetime = 1.5f;
+            public Color PulseColor = new(0.2f, 0.8f, 1f, 0.4f);
+
+            [Title("Data Particles")]
+            public float DataEmissionRate = 10f;
+            public Vector2 DataLifetimeRange = new(1f, 2f);
+            public Vector2 DataSpeedRange = new(0.3f, 0.8f);
+            public Vector2 DataSizeRange = new(0.05f, 0.12f);
+            public Color DataColor = new(0.4f, 1f, 0.8f, 0.8f);
+            public float DataGravity = -0.3f;
+        }
+
+        // ===================== EVENTS =====================
 
         private void Awake()
         {
@@ -36,21 +152,14 @@ namespace GraveyardHunter.FX
         {
             StopActiveVFX();
 
-            switch (evt.Type)
+            _activeVFX = evt.Type switch
             {
-                case BoosterType.SmokeBomb:
-                    _activeVFX = CreateSmokeBombVFX(evt.Duration);
-                    break;
-                case BoosterType.SpeedBoots:
-                    _activeVFX = CreateSpeedBootsVFX(evt.Duration);
-                    break;
-                case BoosterType.ShadowCloak:
-                    _activeVFX = CreateShadowCloakVFX(evt.Duration);
-                    break;
-                case BoosterType.GhostVision:
-                    _activeVFX = CreateGhostVisionVFX(evt.Duration);
-                    break;
-            }
+                BoosterType.SmokeBomb => CreateSmokeBombVFX(evt.Duration),
+                BoosterType.SpeedBoots => CreateSpeedBootsVFX(evt.Duration),
+                BoosterType.ShadowCloak => CreateShadowCloakVFX(evt.Duration),
+                BoosterType.GhostVision => CreateGhostVisionVFX(evt.Duration),
+                _ => null
+            };
         }
 
         private void OnBoosterExpired(BoosterExpiredEvent evt)
@@ -73,83 +182,83 @@ namespace GraveyardHunter.FX
         }
 
         // ===================== SMOKE BOMB =====================
-        // Expanding smoke ring at feet + lingering fog particles
 
         private GameObject CreateSmokeBombVFX(float duration)
         {
+            var c = _smoke;
             var root = new GameObject("VFX_SmokeBomb");
             root.transform.SetParent(GetAnchor(_fxBottom, _fxCenter), false);
             root.transform.localPosition = Vector3.zero;
 
-            // 1. Burst ring
+            // Burst ring
             var burstGO = new GameObject("SmokeBurst");
             burstGO.transform.SetParent(root.transform, false);
             var burst = CreatePS(burstGO);
-            var burstMain = burst.main;
-            burstMain.duration = 0.5f;
-            burstMain.loop = false;
-            burstMain.startLifetime = 1.5f;
-            burstMain.startSpeed = 3f;
-            burstMain.startSize = new ParticleSystem.MinMaxCurve(0.8f, 1.5f);
-            burstMain.startColor = new Color(0.6f, 0.6f, 0.6f, 0.7f);
-            burstMain.gravityModifier = -0.1f;
-            burstMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var bm = burst.main;
+            bm.duration = 0.5f;
+            bm.loop = false;
+            bm.startLifetime = c.BurstLifetime;
+            bm.startSpeed = c.BurstSpeed;
+            bm.startSize = new ParticleSystem.MinMaxCurve(c.BurstSizeRange.x, c.BurstSizeRange.y);
+            bm.startColor = c.BurstColor;
+            bm.gravityModifier = c.BurstGravity;
+            bm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var burstEmission = burst.emission;
-            burstEmission.rateOverTime = 0;
-            burstEmission.SetBursts(new[] { new ParticleSystem.Burst(0f, 30) });
+            var be = burst.emission;
+            be.rateOverTime = 0;
+            be.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)c.BurstCount) });
 
-            var burstShape = burst.shape;
-            burstShape.shapeType = ParticleSystemShapeType.Circle;
-            burstShape.radius = 0.5f;
+            var bs = burst.shape;
+            bs.shapeType = ParticleSystemShapeType.Circle;
+            bs.radius = c.BurstRadius;
 
-            var burstCol = burst.colorOverLifetime;
-            burstCol.enabled = true;
-            var burstGrad = new Gradient();
-            burstGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.7f, 0.7f, 0.7f), 0f), new GradientColorKey(new Color(0.5f, 0.5f, 0.5f), 1f) },
-                new[] { new GradientAlphaKey(0.8f, 0f), new GradientAlphaKey(0f, 1f) }
+            var bc = burst.colorOverLifetime;
+            bc.enabled = true;
+            var bg = new Gradient();
+            bg.SetKeys(
+                new[] { new GradientColorKey(c.BurstColor, 0f), new GradientColorKey(c.BurstColor * 0.7f, 1f) },
+                new[] { new GradientAlphaKey(c.BurstColor.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            burstCol.color = burstGrad;
+            bc.color = bg;
 
-            var burstSize = burst.sizeOverLifetime;
-            burstSize.enabled = true;
-            burstSize.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            var bsol = burst.sizeOverLifetime;
+            bsol.enabled = true;
+            bsol.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
                 new Keyframe(0f, 0.5f), new Keyframe(1f, 2f)));
 
-            SetParticleRenderer(burstGO, new Color(0.6f, 0.6f, 0.6f, 0.7f));
+            SetParticleRenderer(burstGO, c.BurstColor);
 
-            // 2. Lingering fog
+            // Lingering fog
             var fogGO = new GameObject("SmokeFog");
             fogGO.transform.SetParent(root.transform, false);
             var fog = CreatePS(fogGO);
-            var fogMain = fog.main;
-            fogMain.duration = duration;
-            fogMain.loop = true;
-            fogMain.startLifetime = new ParticleSystem.MinMaxCurve(1f, 2f);
-            fogMain.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.5f);
-            fogMain.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.2f);
-            fogMain.startColor = new Color(0.5f, 0.5f, 0.55f, 0.4f);
-            fogMain.gravityModifier = -0.05f;
-            fogMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var fm = fog.main;
+            fm.duration = duration;
+            fm.loop = true;
+            fm.startLifetime = new ParticleSystem.MinMaxCurve(c.FogLifetimeRange.x, c.FogLifetimeRange.y);
+            fm.startSpeed = new ParticleSystem.MinMaxCurve(c.FogSpeedRange.x, c.FogSpeedRange.y);
+            fm.startSize = new ParticleSystem.MinMaxCurve(c.FogSizeRange.x, c.FogSizeRange.y);
+            fm.startColor = c.FogColor;
+            fm.gravityModifier = c.FogGravity;
+            fm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var fogEmission = fog.emission;
-            fogEmission.rateOverTime = 15;
+            var fe = fog.emission;
+            fe.rateOverTime = c.FogEmissionRate;
 
-            var fogShape = fog.shape;
-            fogShape.shapeType = ParticleSystemShapeType.Sphere;
-            fogShape.radius = 1.5f;
+            var fs = fog.shape;
+            fs.shapeType = ParticleSystemShapeType.Sphere;
+            fs.radius = c.FogRadius;
 
-            var fogCol = fog.colorOverLifetime;
-            fogCol.enabled = true;
-            var fogGrad = new Gradient();
-            fogGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.5f, 0.5f, 0.55f), 0f), new GradientColorKey(new Color(0.4f, 0.4f, 0.45f), 1f) },
-                new[] { new GradientAlphaKey(0.5f, 0f), new GradientAlphaKey(0f, 1f) }
+            var fc = fog.colorOverLifetime;
+            fc.enabled = true;
+            var fg = new Gradient();
+            fg.SetKeys(
+                new[] { new GradientColorKey(c.FogColor, 0f), new GradientColorKey(c.FogColor * 0.8f, 1f) },
+                new[] { new GradientAlphaKey(c.FogColor.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            fogCol.color = fogGrad;
+            fc.color = fg;
 
-            SetParticleRenderer(fogGO, new Color(0.5f, 0.5f, 0.55f, 0.4f));
+            SetParticleRenderer(fogGO, c.FogColor);
 
             PlayAllPS(root);
             Destroy(root, duration + 2f);
@@ -157,127 +266,108 @@ namespace GraveyardHunter.FX
         }
 
         // ===================== SPEED BOOTS =====================
-        // Trail particles from feet + motion lines
 
         private GameObject CreateSpeedBootsVFX(float duration)
         {
+            var c = _speed;
             var root = new GameObject("VFX_SpeedBoots");
             root.transform.SetParent(GetAnchor(_fxBottom, _fxCenter), false);
             root.transform.localPosition = Vector3.zero;
 
-            // 1. Speed trail from feet
+            // Speed trail
             var trailGO = new GameObject("SpeedTrail");
-            DOVirtual.DelayedCall(duration, () =>
-            {
-                if (trailGO)
-                {
-                    trailGO.gameObject.SetActive(false);    
-                }
-            });
+            DOVirtual.DelayedCall(duration, () => { if (trailGO) trailGO.SetActive(false); });
             trailGO.transform.SetParent(root.transform, false);
             var trail = CreatePS(trailGO);
-            var trailMain = trail.main;
-            trailMain.duration = duration;
-            trailMain.loop = true;
-            trailMain.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.6f);
-            trailMain.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 1.5f);
-            trailMain.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
-            trailMain.startColor = new Color(1f, 0.7f, 0.2f, 0.8f);
-            trailMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var tm = trail.main;
+            tm.duration = duration;
+            tm.loop = true;
+            tm.startLifetime = new ParticleSystem.MinMaxCurve(c.TrailLifetimeRange.x, c.TrailLifetimeRange.y);
+            tm.startSpeed = new ParticleSystem.MinMaxCurve(c.TrailSpeedRange.x, c.TrailSpeedRange.y);
+            tm.startSize = new ParticleSystem.MinMaxCurve(c.TrailSizeRange.x, c.TrailSizeRange.y);
+            tm.startColor = c.TrailColorStart;
+            tm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var trailEmission = trail.emission;
-            trailEmission.rateOverTime = 30;
+            var te = trail.emission;
+            te.rateOverTime = c.TrailEmissionRate;
 
-            var trailShape = trail.shape;
-            trailShape.shapeType = ParticleSystemShapeType.Cone;
-            trailShape.angle = 25f;
-            trailShape.radius = 0.2f;
-            trailShape.rotation = new Vector3(90f, 0f, 0f); // point down/back
+            var ts = trail.shape;
+            ts.shapeType = ParticleSystemShapeType.Cone;
+            ts.angle = c.TrailConeAngle;
+            ts.radius = c.TrailConeRadius;
+            ts.rotation = new Vector3(90f, 0f, 0f);
 
-            var trailCol = trail.colorOverLifetime;
-            trailCol.enabled = true;
-            var trailGrad = new Gradient();
-            trailGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(1f, 0.8f, 0.3f), 0f), new GradientColorKey(new Color(1f, 0.4f, 0.1f), 1f) },
-                new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0f, 1f) }
+            var tc = trail.colorOverLifetime;
+            tc.enabled = true;
+            var tg = new Gradient();
+            tg.SetKeys(
+                new[] { new GradientColorKey(c.TrailColorStart, 0f), new GradientColorKey(c.TrailColorEnd, 1f) },
+                new[] { new GradientAlphaKey(c.TrailColorStart.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            trailCol.color = trailGrad;
+            tc.color = tg;
 
-            var trailSize = trail.sizeOverLifetime;
-            trailSize.enabled = true;
-            trailSize.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            var tsol = trail.sizeOverLifetime;
+            tsol.enabled = true;
+            tsol.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
                 new Keyframe(0f, 1f), new Keyframe(1f, 0f)));
 
-            SetParticleRenderer(trailGO, new Color(1f, 0.7f, 0.2f, 0.8f));
+            SetParticleRenderer(trailGO, c.TrailColorStart);
 
-            // 2. Burst on activate
+            // Activate burst
             var burstGO = new GameObject("SpeedBurst");
-            DOVirtual.DelayedCall(0.3f, () =>
-            {
-                if (burstGO)
-                {
-                    burstGO.gameObject.SetActive(false);
-                }
-            });
+            DOVirtual.DelayedCall(0.3f, () => { if (burstGO) burstGO.SetActive(false); });
             burstGO.transform.SetParent(root.transform, false);
             var burstPS = CreatePS(burstGO);
-            var burstMain = burstPS.main;
-            burstMain.duration = 0.3f;
-            burstMain.loop = false;
-            burstMain.startLifetime = 0.5f;
-            burstMain.startSpeed = new ParticleSystem.MinMaxCurve(2f, 4f);
-            burstMain.startSize = new ParticleSystem.MinMaxCurve(0.15f, 0.3f);
-            burstMain.startColor = new Color(1f, 0.9f, 0.4f, 1f);
-            burstMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var bm = burstPS.main;
+            bm.duration = 0.3f;
+            bm.loop = false;
+            bm.startLifetime = 0.5f;
+            bm.startSpeed = new ParticleSystem.MinMaxCurve(c.BurstSpeedRange.x, c.BurstSpeedRange.y);
+            bm.startSize = new ParticleSystem.MinMaxCurve(c.BurstSizeRange.x, c.BurstSizeRange.y);
+            bm.startColor = c.BurstColor;
+            bm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var burstEmission = burstPS.emission;
-            burstEmission.rateOverTime = 0;
-            burstEmission.SetBursts(new[] { new ParticleSystem.Burst(0f, 20) });
+            var bbe = burstPS.emission;
+            bbe.rateOverTime = 0;
+            bbe.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)c.BurstCount) });
 
-            var burstShape = burstPS.shape;
-            burstShape.shapeType = ParticleSystemShapeType.Sphere;
-            burstShape.radius = 0.3f;
+            var bbs = burstPS.shape;
+            bbs.shapeType = ParticleSystemShapeType.Sphere;
+            bbs.radius = 0.3f;
 
-            SetParticleRenderer(burstGO, new Color(1f, 0.9f, 0.4f, 1f));
+            SetParticleRenderer(burstGO, c.BurstColor);
 
-            // 3. Wind lines around player
+            // Wind lines
             var windGO = new GameObject("WindLines");
-            DOVirtual.DelayedCall(duration, () =>
-            {
-                if (windGO)
-                {
-                    windGO.gameObject.SetActive(false);
-                }
-            });
+            DOVirtual.DelayedCall(duration, () => { if (windGO) windGO.SetActive(false); });
             windGO.transform.SetParent(root.transform, false);
             windGO.transform.localPosition = new Vector3(0f, 0.5f, 0f);
             var wind = CreatePS(windGO);
-            var windMain = wind.main;
-            windMain.duration = duration;
-            windMain.loop = true;
-            windMain.startLifetime = 0.4f;
-            windMain.startSpeed = new ParticleSystem.MinMaxCurve(3f, 5f);
-            windMain.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.05f);
-            windMain.startColor = new Color(1f, 1f, 1f, 0.5f);
-            windMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var wm = wind.main;
+            wm.duration = duration;
+            wm.loop = true;
+            wm.startLifetime = c.WindLifetime;
+            wm.startSpeed = new ParticleSystem.MinMaxCurve(c.WindSpeedRange.x, c.WindSpeedRange.y);
+            wm.startSize = new ParticleSystem.MinMaxCurve(c.WindSizeRange.x, c.WindSizeRange.y);
+            wm.startColor = c.WindColor;
+            wm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var windEmission = wind.emission;
-            windEmission.rateOverTime = 20;
+            var we = wind.emission;
+            we.rateOverTime = c.WindEmissionRate;
 
-            var windShape = wind.shape;
-            windShape.shapeType = ParticleSystemShapeType.Circle;
-            windShape.radius = 0.8f;
+            var ws = wind.shape;
+            ws.shapeType = ParticleSystemShapeType.Circle;
+            ws.radius = c.WindCircleRadius;
 
-            // Stretch particles for line effect
-            var windRenderer = windGO.GetComponent<ParticleSystemRenderer>();
-            if (windRenderer != null)
+            var wr = windGO.GetComponent<ParticleSystemRenderer>();
+            if (wr != null)
             {
-                windRenderer.renderMode = ParticleSystemRenderMode.Stretch;
-                windRenderer.lengthScale = 4f;
-                windRenderer.velocityScale = 0.1f;
+                wr.renderMode = ParticleSystemRenderMode.Stretch;
+                wr.lengthScale = c.WindStretchLength;
+                wr.velocityScale = 0.1f;
             }
 
-            SetParticleRenderer(windGO, new Color(1f, 1f, 1f, 0.4f));
+            SetParticleRenderer(windGO, c.WindColor);
 
             PlayAllPS(root);
             Destroy(root, duration + 1f);
@@ -285,127 +375,109 @@ namespace GraveyardHunter.FX
         }
 
         // ===================== SHADOW CLOAK =====================
-        // Dark aura + shadow wisps rising from body
 
         private GameObject CreateShadowCloakVFX(float duration)
         {
+            var c = _shadow;
             var root = new GameObject("VFX_ShadowCloak");
             root.transform.SetParent(GetAnchor(_fxCenter, transform), false);
             root.transform.localPosition = Vector3.zero;
 
-            // 1. Dark aura
+            // Dark aura
             var auraGO = new GameObject("DarkAura");
-            DOVirtual.DelayedCall(duration, () =>
-            {
-                if (auraGO)
-                {
-                    auraGO.gameObject.SetActive(false);
-                }
-            });
+            DOVirtual.DelayedCall(duration, () => { if (auraGO) auraGO.SetActive(false); });
             auraGO.transform.SetParent(root.transform, false);
             var aura = CreatePS(auraGO);
-            var auraMain = aura.main;
-            auraMain.duration = duration;
-            auraMain.loop = true;
-            auraMain.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 1.5f);
-            auraMain.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
-            auraMain.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
-            auraMain.startColor = new Color(0.1f, 0.0f, 0.15f, 0.5f);
-            auraMain.gravityModifier = -0.2f;
-            auraMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var am = aura.main;
+            am.duration = duration;
+            am.loop = true;
+            am.startLifetime = new ParticleSystem.MinMaxCurve(c.AuraLifetimeRange.x, c.AuraLifetimeRange.y);
+            am.startSpeed = new ParticleSystem.MinMaxCurve(c.AuraSpeedRange.x, c.AuraSpeedRange.y);
+            am.startSize = new ParticleSystem.MinMaxCurve(c.AuraSizeRange.x, c.AuraSizeRange.y);
+            am.startColor = c.AuraColor;
+            am.gravityModifier = c.AuraGravity;
+            am.simulationSpace = ParticleSystemSimulationSpace.Local;
 
-            var auraEmission = aura.emission;
-            auraEmission.rateOverTime = 20;
+            var ae = aura.emission;
+            ae.rateOverTime = c.AuraEmissionRate;
 
-            var auraShape = aura.shape;
-            auraShape.shapeType = ParticleSystemShapeType.Sphere;
-            auraShape.radius = 0.6f;
+            var ash = aura.shape;
+            ash.shapeType = ParticleSystemShapeType.Sphere;
+            ash.radius = c.AuraRadius;
 
-            var auraCol = aura.colorOverLifetime;
-            auraCol.enabled = true;
-            var auraGrad = new Gradient();
-            auraGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.15f, 0.0f, 0.2f), 0f), new GradientColorKey(new Color(0.05f, 0.0f, 0.1f), 1f) },
-                new[] { new GradientAlphaKey(0.6f, 0f), new GradientAlphaKey(0f, 1f) }
+            var ac = aura.colorOverLifetime;
+            ac.enabled = true;
+            var ag = new Gradient();
+            ag.SetKeys(
+                new[] { new GradientColorKey(c.AuraColor, 0f), new GradientColorKey(c.AuraColor * 0.5f, 1f) },
+                new[] { new GradientAlphaKey(c.AuraColor.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            auraCol.color = auraGrad;
+            ac.color = ag;
 
-            var auraSize = aura.sizeOverLifetime;
-            auraSize.enabled = true;
-            auraSize.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            var asol = aura.sizeOverLifetime;
+            asol.enabled = true;
+            asol.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
                 new Keyframe(0f, 0.8f), new Keyframe(0.5f, 1.2f), new Keyframe(1f, 0.3f)));
 
-            SetParticleRenderer(auraGO, new Color(0.1f, 0.0f, 0.15f, 0.5f));
+            SetParticleRenderer(auraGO, c.AuraColor);
 
-            // 2. Shadow wisps rising
+            // Shadow wisps
             var wispsGO = new GameObject("ShadowWisps");
-            DOVirtual.DelayedCall(duration, () =>
-            {
-                if (wispsGO)
-                {
-                    wispsGO.gameObject.SetActive(false);
-                }
-            });
+            DOVirtual.DelayedCall(duration, () => { if (wispsGO) wispsGO.SetActive(false); });
             wispsGO.transform.SetParent(root.transform, false);
             wispsGO.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             var wisps = CreatePS(wispsGO);
-            var wispsMain = wisps.main;
-            wispsMain.duration = duration;
-            wispsMain.loop = true;
-            wispsMain.startLifetime = new ParticleSystem.MinMaxCurve(1f, 2f);
-            wispsMain.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 1.2f);
-            wispsMain.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.25f);
-            wispsMain.startColor = new Color(0.2f, 0.05f, 0.3f, 0.7f);
-            wispsMain.gravityModifier = -0.5f;
-            wispsMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var wm = wisps.main;
+            wm.duration = duration;
+            wm.loop = true;
+            wm.startLifetime = new ParticleSystem.MinMaxCurve(c.WispsLifetimeRange.x, c.WispsLifetimeRange.y);
+            wm.startSpeed = new ParticleSystem.MinMaxCurve(c.WispsSpeedRange.x, c.WispsSpeedRange.y);
+            wm.startSize = new ParticleSystem.MinMaxCurve(c.WispsSizeRange.x, c.WispsSizeRange.y);
+            wm.startColor = c.WispsColor;
+            wm.gravityModifier = c.WispsGravity;
+            wm.simulationSpace = ParticleSystemSimulationSpace.Local;
 
-            var wispsEmission = wisps.emission;
-            wispsEmission.rateOverTime = 12;
+            var wse = wisps.emission;
+            wse.rateOverTime = c.WispsEmissionRate;
 
-            var wispsShape = wisps.shape;
-            wispsShape.shapeType = ParticleSystemShapeType.Circle;
-            wispsShape.radius = 0.5f;
+            var wss = wisps.shape;
+            wss.shapeType = ParticleSystemShapeType.Circle;
+            wss.radius = c.WispsRadius;
 
-            var wispsCol = wisps.colorOverLifetime;
-            wispsCol.enabled = true;
-            var wispsGrad = new Gradient();
-            wispsGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.3f, 0.05f, 0.4f), 0f), new GradientColorKey(new Color(0.1f, 0.0f, 0.15f), 1f) },
-                new[] { new GradientAlphaKey(0.7f, 0f), new GradientAlphaKey(0f, 1f) }
+            var wsc = wisps.colorOverLifetime;
+            wsc.enabled = true;
+            var wsg = new Gradient();
+            wsg.SetKeys(
+                new[] { new GradientColorKey(c.WispsColor, 0f), new GradientColorKey(c.WispsColor * 0.5f, 1f) },
+                new[] { new GradientAlphaKey(c.WispsColor.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            wispsCol.color = wispsGrad;
+            wsc.color = wsg;
 
-            SetParticleRenderer(wispsGO, new Color(0.2f, 0.05f, 0.3f, 0.7f));
+            SetParticleRenderer(wispsGO, c.WispsColor);
 
-            // 3. Activate burst
+            // Activate burst
             var burstGO = new GameObject("CloakBurst");
-            DOVirtual.DelayedCall(0.3f, () =>
-            {
-                if (burstGO)
-                {
-                    burstGO.gameObject.SetActive(false);
-                }
-            });
+            DOVirtual.DelayedCall(0.3f, () => { if (burstGO) burstGO.SetActive(false); });
             burstGO.transform.SetParent(root.transform, false);
             var burstPS = CreatePS(burstGO);
-            var burstMain = burstPS.main;
-            burstMain.duration = 0.3f;
-            burstMain.loop = false;
-            burstMain.startLifetime = 0.8f;
-            burstMain.startSpeed = new ParticleSystem.MinMaxCurve(1f, 3f);
-            burstMain.startSize = new ParticleSystem.MinMaxCurve(0.2f, 0.5f);
-            burstMain.startColor = new Color(0.3f, 0.0f, 0.5f, 0.8f);
-            burstMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var bm = burstPS.main;
+            bm.duration = 0.3f;
+            bm.loop = false;
+            bm.startLifetime = 0.8f;
+            bm.startSpeed = new ParticleSystem.MinMaxCurve(c.BurstSpeedRange.x, c.BurstSpeedRange.y);
+            bm.startSize = new ParticleSystem.MinMaxCurve(c.BurstSizeRange.x, c.BurstSizeRange.y);
+            bm.startColor = c.BurstColor;
+            bm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var burstEmission = burstPS.emission;
-            burstEmission.rateOverTime = 0;
-            burstEmission.SetBursts(new[] { new ParticleSystem.Burst(0f, 25) });
+            var bbe = burstPS.emission;
+            bbe.rateOverTime = 0;
+            bbe.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)c.BurstCount) });
 
-            var burstShape = burstPS.shape;
-            burstShape.shapeType = ParticleSystemShapeType.Sphere;
-            burstShape.radius = 0.4f;
+            var bbs = burstPS.shape;
+            bbs.shapeType = ParticleSystemShapeType.Sphere;
+            bbs.radius = 0.4f;
 
-            SetParticleRenderer(burstGO, new Color(0.3f, 0.0f, 0.5f, 0.8f));
+            SetParticleRenderer(burstGO, c.BurstColor);
 
             PlayAllPS(root);
             Destroy(root, duration + 2f);
@@ -413,106 +485,106 @@ namespace GraveyardHunter.FX
         }
 
         // ===================== GHOST VISION =====================
-        // Eye glow + scanning pulse ring + ethereal eye particles
 
         private GameObject CreateGhostVisionVFX(float duration)
         {
+            var c = _ghost;
             var root = new GameObject("VFX_GhostVision");
             root.transform.SetParent(GetAnchor(_fxTop, _fxCenter), false);
             root.transform.localPosition = Vector3.zero;
 
-            // 1. Eye glow aura on head
+            // Eye glow
             var glowGO = new GameObject("EyeGlow");
             glowGO.transform.SetParent(root.transform, false);
             var glow = CreatePS(glowGO);
-            var glowMain = glow.main;
-            glowMain.duration = duration;
-            glowMain.loop = true;
-            glowMain.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1f);
-            glowMain.startSpeed = 0.1f;
-            glowMain.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
-            glowMain.startColor = new Color(0.2f, 0.8f, 1f, 0.6f);
-            glowMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var gm = glow.main;
+            gm.duration = duration;
+            gm.loop = true;
+            gm.startLifetime = new ParticleSystem.MinMaxCurve(c.GlowLifetimeRange.x, c.GlowLifetimeRange.y);
+            gm.startSpeed = 0.1f;
+            gm.startSize = new ParticleSystem.MinMaxCurve(c.GlowSizeRange.x, c.GlowSizeRange.y);
+            gm.startColor = c.GlowColorStart;
+            gm.simulationSpace = ParticleSystemSimulationSpace.Local;
 
-            var glowEmission = glow.emission;
-            glowEmission.rateOverTime = 8;
+            var ge = glow.emission;
+            ge.rateOverTime = c.GlowEmissionRate;
 
-            var glowShape = glow.shape;
-            glowShape.shapeType = ParticleSystemShapeType.Sphere;
-            glowShape.radius = 0.15f;
+            var gs = glow.shape;
+            gs.shapeType = ParticleSystemShapeType.Sphere;
+            gs.radius = c.GlowRadius;
 
-            var glowCol = glow.colorOverLifetime;
-            glowCol.enabled = true;
-            var glowGrad = new Gradient();
-            glowGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.3f, 0.9f, 1f), 0f), new GradientColorKey(new Color(0.1f, 0.5f, 0.8f), 1f) },
-                new[] { new GradientAlphaKey(0.7f, 0f), new GradientAlphaKey(0f, 1f) }
+            var gc = glow.colorOverLifetime;
+            gc.enabled = true;
+            var gg = new Gradient();
+            gg.SetKeys(
+                new[] { new GradientColorKey(c.GlowColorStart, 0f), new GradientColorKey(c.GlowColorEnd, 1f) },
+                new[] { new GradientAlphaKey(c.GlowColorStart.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            glowCol.color = glowGrad;
+            gc.color = gg;
 
-            SetParticleRenderer(glowGO, new Color(0.2f, 0.8f, 1f, 0.6f));
+            SetParticleRenderer(glowGO, c.GlowColorStart);
 
-            // 2. Scanning pulse ring (repeating)
+            // Scan pulse
             var pulseGO = new GameObject("ScanPulse");
             pulseGO.transform.SetParent(root.transform, false);
             pulseGO.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             var pulse = CreatePS(pulseGO);
-            var pulseMain = pulse.main;
-            pulseMain.duration = duration;
-            pulseMain.loop = true;
-            pulseMain.startLifetime = 1.5f;
-            pulseMain.startSpeed = 3f;
-            pulseMain.startSize = 0.1f;
-            pulseMain.startColor = new Color(0.2f, 0.8f, 1f, 0.4f);
-            pulseMain.simulationSpace = ParticleSystemSimulationSpace.World;
+            var pm = pulse.main;
+            pm.duration = duration;
+            pm.loop = true;
+            pm.startLifetime = c.PulseLifetime;
+            pm.startSpeed = c.PulseSpeed;
+            pm.startSize = 0.1f;
+            pm.startColor = c.PulseColor;
+            pm.simulationSpace = ParticleSystemSimulationSpace.World;
 
-            var pulseEmission = pulse.emission;
-            pulseEmission.rateOverTime = 0;
-            pulseEmission.SetBursts(new[] { new ParticleSystem.Burst(0f, 40, 1, 1.5f) });
+            var pe = pulse.emission;
+            pe.rateOverTime = 0;
+            pe.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)c.PulseBurstCount, 1, c.PulseInterval) });
 
-            var pulseShape = pulse.shape;
-            pulseShape.shapeType = ParticleSystemShapeType.Circle;
-            pulseShape.radius = 0.1f;
+            var psh = pulse.shape;
+            psh.shapeType = ParticleSystemShapeType.Circle;
+            psh.radius = 0.1f;
 
-            var pulseCol = pulse.colorOverLifetime;
-            pulseCol.enabled = true;
-            var pulseGrad = new Gradient();
-            pulseGrad.SetKeys(
-                new[] { new GradientColorKey(new Color(0.3f, 0.9f, 1f), 0f), new GradientColorKey(new Color(0.1f, 0.4f, 0.6f), 1f) },
-                new[] { new GradientAlphaKey(0.5f, 0f), new GradientAlphaKey(0f, 1f) }
+            var pc = pulse.colorOverLifetime;
+            pc.enabled = true;
+            var pg = new Gradient();
+            pg.SetKeys(
+                new[] { new GradientColorKey(c.PulseColor, 0f), new GradientColorKey(c.PulseColor * 0.5f, 1f) },
+                new[] { new GradientAlphaKey(c.PulseColor.a, 0f), new GradientAlphaKey(0f, 1f) }
             );
-            pulseCol.color = pulseGrad;
+            pc.color = pg;
 
-            var pulseSize = pulse.sizeOverLifetime;
-            pulseSize.enabled = true;
-            pulseSize.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+            var psol = pulse.sizeOverLifetime;
+            psol.enabled = true;
+            psol.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
                 new Keyframe(0f, 0.5f), new Keyframe(1f, 0.05f)));
 
-            SetParticleRenderer(pulseGO, new Color(0.2f, 0.8f, 1f, 0.4f));
+            SetParticleRenderer(pulseGO, c.PulseColor);
 
-            // 3. Floating data particles
+            // Data particles
             var dataGO = new GameObject("DataParticles");
             dataGO.transform.SetParent(root.transform, false);
             dataGO.transform.localPosition = new Vector3(0f, -0.3f, 0f);
             var data = CreatePS(dataGO);
-            var dataMain = data.main;
-            dataMain.duration = duration;
-            dataMain.loop = true;
-            dataMain.startLifetime = new ParticleSystem.MinMaxCurve(1f, 2f);
-            dataMain.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.8f);
-            dataMain.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.12f);
-            dataMain.startColor = new Color(0.4f, 1f, 0.8f, 0.8f);
-            dataMain.gravityModifier = -0.3f;
-            dataMain.simulationSpace = ParticleSystemSimulationSpace.Local;
+            var dm = data.main;
+            dm.duration = duration;
+            dm.loop = true;
+            dm.startLifetime = new ParticleSystem.MinMaxCurve(c.DataLifetimeRange.x, c.DataLifetimeRange.y);
+            dm.startSpeed = new ParticleSystem.MinMaxCurve(c.DataSpeedRange.x, c.DataSpeedRange.y);
+            dm.startSize = new ParticleSystem.MinMaxCurve(c.DataSizeRange.x, c.DataSizeRange.y);
+            dm.startColor = c.DataColor;
+            dm.gravityModifier = c.DataGravity;
+            dm.simulationSpace = ParticleSystemSimulationSpace.Local;
 
-            var dataEmission = data.emission;
-            dataEmission.rateOverTime = 10;
+            var de = data.emission;
+            de.rateOverTime = c.DataEmissionRate;
 
-            var dataShape = data.shape;
-            dataShape.shapeType = ParticleSystemShapeType.Box;
-            dataShape.scale = new Vector3(1f, 1.5f, 1f);
+            var ds = data.shape;
+            ds.shapeType = ParticleSystemShapeType.Box;
+            ds.scale = new Vector3(1f, 1.5f, 1f);
 
-            SetParticleRenderer(dataGO, new Color(0.4f, 1f, 0.8f, 0.8f));
+            SetParticleRenderer(dataGO, c.DataColor);
 
             PlayAllPS(root);
             Destroy(root, duration + 2f);
@@ -521,10 +593,6 @@ namespace GraveyardHunter.FX
 
         // ===================== HELPERS =====================
 
-        /// <summary>
-        /// AddComponent auto-plays the system. We must stop it first,
-        /// configure everything, then explicitly Play() after setup.
-        /// </summary>
         private ParticleSystem CreatePS(GameObject go)
         {
             var ps = go.AddComponent<ParticleSystem>();
@@ -534,8 +602,7 @@ namespace GraveyardHunter.FX
 
         private void PlayAllPS(GameObject root)
         {
-            var systems = root.GetComponentsInChildren<ParticleSystem>();
-            foreach (var ps in systems)
+            foreach (var ps in root.GetComponentsInChildren<ParticleSystem>())
                 ps.Play(true);
         }
 
@@ -544,16 +611,11 @@ namespace GraveyardHunter.FX
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             if (renderer == null) return;
 
-            renderer.renderMode = renderer.renderMode == ParticleSystemRenderMode.Stretch
-                ? ParticleSystemRenderMode.Stretch
-                : ParticleSystemRenderMode.Billboard;
+            if (renderer.renderMode != ParticleSystemRenderMode.Stretch)
+                renderer.renderMode = ParticleSystemRenderMode.Billboard;
 
-            // Use default particle material
-            renderer.material = new Material(Shader.Find("Particles/Standard Unlit"))
-            {
-                color = color
-            };
-            renderer.material.SetFloat("_Mode", 3f); // Transparent
+            renderer.material = new Material(Shader.Find("Particles/Standard Unlit")) { color = color };
+            renderer.material.SetFloat("_Mode", 3f);
             renderer.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
             renderer.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.One);
         }
