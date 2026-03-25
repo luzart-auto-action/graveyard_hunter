@@ -171,14 +171,7 @@ namespace GraveyardHunter.UI
         private void OnLevelNodeClicked(int levelIndex)
         {
             if (levelIndex > PlayerProgressData.GetCurrentLevel()) return;
-
             _selectedLevel = levelIndex;
-
-            foreach (var node in _spawnedNodes)
-            {
-                if (node != null)
-                    node.SetSelected(node.LevelIndex == levelIndex);
-            }
         }
 
         private void OnPlayClicked()
